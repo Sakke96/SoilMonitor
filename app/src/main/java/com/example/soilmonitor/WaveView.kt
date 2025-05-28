@@ -32,18 +32,15 @@ class WaveView @JvmOverloads constructor(
         alpha = 100
     }
 
-    // Unique initial phases for each instance
     private var phase = Random.nextFloat() * (2 * Math.PI).toFloat()
     private var phase2 = Random.nextFloat() * (2 * Math.PI).toFloat()
 
-    // Base wave parameters
     private val baseSpeed1 = 0.03f
     private val baseSpeed2 = 0.015f
-    private val baseHeight = 20f       // base amplitude
+    private val baseHeight = 20f
     private val baseFrequency1 = 2f
     private val baseFrequency2 = 1.2f
 
-    // Instance random multipliers for speed and amplitude
     private val speedFactor1 = 0.8f + Random.nextFloat() * 0.4f
     private val speedFactor2 = 0.8f + Random.nextFloat() * 0.4f
     private val heightFactor1 = 0.8f + Random.nextFloat() * 0.4f
@@ -58,19 +55,22 @@ class WaveView @JvmOverloads constructor(
 
         val w = width.toFloat()
         val h = height.toFloat()
-        val baseY = h * (1f - progress)
+        val visualProgress = progress * 0.95f
+        val baseY = h * (1f - visualProgress)
 
-        // Modulate amplitude over time, then apply instance height factor
-        val dynamicHeight1 = baseHeight * heightFactor1 * (0.8f + 0.4f * sin(phase * 0.5f))
-        val dynamicHeight2 = baseHeight * heightFactor2 * (0.8f + 0.4f * sin(phase2 * 0.7f))
+        val dynamicHeight1 =
+            baseHeight * heightFactor1 * (0.8f + 0.4f * sin(phase * 0.5f))
+        val dynamicHeight2 =
+            baseHeight * heightFactor2 * (0.8f + 0.4f * sin(phase2 * 0.7f))
 
-        // First wave path
         val path1 = Path().apply {
             moveTo(0f, h)
             lineTo(0f, baseY)
             var x = 0f
             while (x <= w) {
-                val y = baseY + sin((x / w * Math.PI * 2 * baseFrequency1 + phase).toFloat()) * dynamicHeight1
+                val y = baseY +
+                        sin((x / w * Math.PI * 2 * baseFrequency1 + phase).toFloat()) *
+                        dynamicHeight1
                 lineTo(x, y)
                 x += 1f
             }
@@ -78,13 +78,14 @@ class WaveView @JvmOverloads constructor(
             close()
         }
 
-        // Second overlapping wave path
         val path2 = Path().apply {
             moveTo(0f, h)
             lineTo(0f, baseY)
             var x = 0f
             while (x <= w) {
-                val y = baseY + sin((x / w * Math.PI * 2 * baseFrequency2 + phase2).toFloat()) * dynamicHeight2
+                val y = baseY +
+                        sin((x / w * Math.PI * 2 * baseFrequency2 + phase2).toFloat()) *
+                        dynamicHeight2
                 lineTo(x, y)
                 x += 1f
             }
@@ -92,11 +93,9 @@ class WaveView @JvmOverloads constructor(
             close()
         }
 
-        // Draw waves
         canvas.drawPath(path1, wavePaint1)
         canvas.drawPath(path2, wavePaint2)
 
-        // Advance phases by speed * instance factor
         phase += baseSpeed1 * speedFactor1
         phase2 += baseSpeed2 * speedFactor2
         postInvalidateOnAnimation()

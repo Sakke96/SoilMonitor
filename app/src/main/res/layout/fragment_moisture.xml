@@ -3,12 +3,11 @@
     android:id="@+id/moistureGrid"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:rowCount="2"
-    android:columnCount="2"
     android:padding="16dp">
 
     <!-- Plant 1 -->
     <FrameLayout
+        android:id="@+id/plant1Container"
         android:layout_width="0dp"
         android:layout_height="150dp"
         android:layout_columnWeight="1"
@@ -20,7 +19,6 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
 
-        <!-- Value overlay -->
         <TextView
             android:id="@+id/plant1Value"
             android:layout_width="wrap_content"
@@ -32,7 +30,6 @@
             android:layout_gravity="center"
             android:elevation="4dp" />
 
-        <!-- Label on top -->
         <TextView
             android:id="@+id/plant1Label"
             android:layout_width="wrap_content"
@@ -48,6 +45,7 @@
 
     <!-- Plant 2 -->
     <FrameLayout
+        android:id="@+id/plant2Container"
         android:layout_width="0dp"
         android:layout_height="150dp"
         android:layout_columnWeight="1"
@@ -85,6 +83,7 @@
 
     <!-- Plant 3 -->
     <FrameLayout
+        android:id="@+id/plant3Container"
         android:layout_width="0dp"
         android:layout_height="150dp"
         android:layout_columnWeight="1"
@@ -122,6 +121,7 @@
 
     <!-- Plant 4 -->
     <FrameLayout
+        android:id="@+id/plant4Container"
         android:layout_width="0dp"
         android:layout_height="150dp"
         android:layout_columnWeight="1"
@@ -149,6 +149,196 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Plant 4"
+            android:textStyle="bold"
+            android:textSize="14sp"
+            android:textColor="@android:color/black"
+            android:layout_gravity="top|start"
+            android:padding="4dp"
+            android:elevation="6dp" />
+    </FrameLayout>
+
+    <!-- Plant 5 -->
+    <FrameLayout
+        android:id="@+id/plant5Container"
+        android:layout_width="0dp"
+        android:layout_height="150dp"
+        android:layout_columnWeight="1"
+        android:layout_rowWeight="1"
+        android:layout_margin="8dp">
+
+        <com.example.soilmonitor.WaveView
+            android:id="@+id/plant5"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <TextView
+            android:id="@+id/plant5Value"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0%"
+            android:textStyle="bold"
+            android:textSize="18sp"
+            android:textColor="@android:color/black"
+            android:layout_gravity="center"
+            android:elevation="4dp" />
+
+        <TextView
+            android:id="@+id/plant5Label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Plant 5"
+            android:textStyle="bold"
+            android:textSize="14sp"
+            android:textColor="@android:color/black"
+            android:layout_gravity="top|start"
+            android:padding="4dp"
+            android:elevation="6dp" />
+    </FrameLayout>
+
+    <!-- Plant 6 -->
+    <FrameLayout
+        android:id="@+id/plant6Container"
+        android:layout_width="0dp"
+        android:layout_height="150dp"
+        android:layout_columnWeight="1"
+        android:layout_rowWeight="1"
+        android:layout_margin="8dp">
+
+        <com.example.soilmonitor.WaveView
+            android:id="@+id/plant6"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <TextView
+            android:id="@+id/plant6Value"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0%"
+            android:textStyle="bold"
+            android:textSize="18sp"
+            android:textColor="@android:color/black"
+            android:layout_gravity="center"
+            android:elevation="4dp" />
+
+        <TextView
+            android:id="@+id/plant6Label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Plant 6"
+            android:textStyle="bold"
+            android:textSize="14sp"
+            android:textColor="@android:color/black"
+            android:layout_gravity="top|start"
+            android:padding="4dp"
+            android:elevation="6dp" />
+    </FrameLayout>
+
+    <!-- Plant 7 -->
+    <FrameLayout
+        android:id="@+id/plant7Container"
+        android:layout_width="0dp"
+        android:layout_height="150dp"
+        android:layout_columnWeight="1"
+        android:layout_rowWeight="1"
+        android:layout_margin="8dp">
+
+        <com.example.soilmonitor.WaveView
+            android:id="@+id/plant7"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <TextView
+            android:id="@+id/plant7Value"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0%"
+            android:textStyle="bold"
+            android:textSize="18sp"
+            android:textColor="@android:color/black"
+            android:layout_gravity="center"
+            android:elevation="4dp" />
+
+        <TextView
+            android:id="@+id/plant7Label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Plant 7"
+            android:textStyle="bold"
+            android:textSize="14sp"
+            android:textColor="@android:color/black"
+            android:layout_gravity="top|start"
+            android:padding="4dp"
+            android:elevation="6dp" />
+    </FrameLayout>
+
+    <!-- Plant 8 -->
+    <FrameLayout
+        android:id="@+id/plant8Container"
+        android:layout_width="0dp"
+        android:layout_height="150dp"
+        android:layout_columnWeight="1"
+        android:layout_rowWeight="1"
+        android:layout_margin="8dp">
+
+        <com.example.soilmonitor.WaveView
+            android:id="@+id/plant8"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <TextView
+            android:id="@+id/plant8Value"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0%"
+            android:textStyle="bold"
+            android:textSize="18sp"
+            android:textColor="@android:color/black"
+            android:layout_gravity="center"
+            android:elevation="4dp" />
+
+        <TextView
+            android:id="@+id/plant8Label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Plant 8"
+            android:textStyle="bold"
+            android:textSize="14sp"
+            android:textColor="@android:color/black"
+            android:layout_gravity="top|start"
+            android:padding="4dp"
+            android:elevation="6dp" />
+    </FrameLayout>
+
+    <!-- Plant 9 -->
+    <FrameLayout
+        android:id="@+id/plant9Container"
+        android:layout_width="0dp"
+        android:layout_height="150dp"
+        android:layout_columnWeight="1"
+        android:layout_rowWeight="1"
+        android:layout_margin="8dp">
+
+        <com.example.soilmonitor.WaveView
+            android:id="@+id/plant9"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <TextView
+            android:id="@+id/plant9Value"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0%"
+            android:textStyle="bold"
+            android:textSize="18sp"
+            android:textColor="@android:color/black"
+            android:layout_gravity="center"
+            android:elevation="4dp" />
+
+        <TextView
+            android:id="@+id/plant9Label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Plant 9"
             android:textStyle="bold"
             android:textSize="14sp"
             android:textColor="@android:color/black"
