@@ -17,14 +17,17 @@ class MoistureFragment : Fragment() {
     private lateinit var waveViews: List<WaveView>
     private lateinit var valueTexts: List<TextView>
     private val sensorKeys = listOf("sensor_u0", "sensor_u1", "sensor_u2", "sensor_u3")
-    private val maxValue = 1023f
 
-    // Handler voor periodieke updates
+    // Calibration values: [dry, wet] for each sensor
+    private val dryValues = listOf(372f, 318f, 359f, 421f)
+    private val wetValues = listOf(329f, 367f, 385f, 408f)
+
+    // Handler for periodic updates
     private val handler = Handler(Looper.getMainLooper())
     private val refreshRunnable = object : Runnable {
         override fun run() {
             fetchLatestMoisture()
-            handler.postDelayed(this, 60_000L) // na 60 sec opnieuw
+            handler.postDelayed(this, 60_000L) // every 60 seconds
         }
     }
 
@@ -35,7 +38,7 @@ class MoistureFragment : Fragment() {
     ): View? {
         val root = inflater.inflate(R.layout.fragment_moisture, container, false)
 
-        // Initialiseer WaveViews en bijbehorende TextViews
+        // Map WaveViews and TextViews in order: plant1…plant4
         waveViews = listOf(
             root.findViewById(R.id.plant1),
             root.findViewById(R.id.plant2),
@@ -49,15 +52,15 @@ class MoistureFragment : Fragment() {
             root.findViewById(R.id.plant4Value)
         )
 
-        // Start direct én periodiek elke minuut
-        handler.post(refreshRunnable)
+        // Optionally set labels (if you have TextViews for labels)
+        // e.g. root.findViewById<TextView>(R.id.plant1Label).text = "Plant 1"
 
+        handler.post(refreshRunnable)
         return root
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
-        // Stop de automatische updates
         handler.removeCallbacks(refreshRunnable)
     }
 
@@ -69,27 +72,30 @@ class MoistureFragment : Fragment() {
 
         client.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
-                // Optioneel: log of toon foutmelding
+                // TODO: handle error
             }
 
             override fun onResponse(call: Call, response: Response) {
                 response.body?.string()?.let { body ->
                     val items = JSONObject(body).getJSONArray("items")
                     if (items.length() == 0) return
-
-                    // Pak het meest recente datapunt
                     val latest = items.getJSONObject(items.length() - 1)
 
-                    // UI-update
                     activity?.runOnUiThread {
-                        sensorKeys.forEachIndexed { index, key ->
-                            val rawValue = latest.optDouble(key, -1.0)
-                            if (rawValue >= 0) {
-                                // Bereken ratio (0..1) en clamp
-                                val ratio = (rawValue.toFloat() / maxValue).coerceIn(0f, 1f)
-                                waveViews.getOrNull(index)?.progress = ratio
+                        sensorKeys.forEachIndexed { i, key ->
+                            val raw = latest.optDouble(key, -1.0).toFloat()
+                            if (raw >= 0f) {
+                                // Compute unbounded ratio: (raw - dry) / (wet - dry)
+                                val ratioUnclamped = (raw - dryValues[i]) /
+                                        (wetValues[i] - dryValues[i])
+
+                                // Clamp into [0f,1f]
+                                val ratio = ratioUnclamped.coerceIn(0f, 1f)
+
+                                // Update wave and text
+                                waveViews.getOrNull(i)?.progress = ratio
                                 val percent = (ratio * 100).toInt()
-                                valueTexts.getOrNull(index)?.text = "$percent%"
+                                valueTexts.getOrNull(i)?.text = "$percent%"
                             }
                         }
                     }

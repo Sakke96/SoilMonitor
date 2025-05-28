@@ -12,6 +12,7 @@ import android.widget.Spinner
 import androidx.fragment.app.Fragment
 import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.components.Legend
+import com.github.mikephil.charting.components.LimitLine
 import com.github.mikephil.charting.components.XAxis
 import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
@@ -31,6 +32,10 @@ class SensorFragment : Fragment() {
     private val sensorKeys = listOf("sensor_u0", "sensor_u1", "sensor_u2", "sensor_u3")
     private val allOptions = listOf("All Sensors") + sensorKeys
 
+    // Calibration values for boundary lines
+    private val dryValues = listOf(372f, 318f, 359f, 421f)
+    private val wetValues = listOf(329f, 367f, 385f, 408f)
+
     private val sensorColors = listOf(
         android.graphics.Color.RED,
         android.graphics.Color.BLUE,
@@ -42,7 +47,7 @@ class SensorFragment : Fragment() {
     private val refreshRunnable = object : Runnable {
         override fun run() {
             fetchSoilData()
-            handler.postDelayed(this, 60_000L) // opnieuw na 60 seconden
+            handler.postDelayed(this, 60_000L)
         }
     }
 
@@ -68,13 +73,11 @@ class SensorFragment : Fragment() {
             override fun onNothingSelected(parent: AdapterView<*>) {}
         }
 
-        // Start direct en herhaal elke minuut
         handler.post(refreshRunnable)
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
-        // Stop de automatische refresh als view weg is
         handler.removeCallbacks(refreshRunnable)
     }
 
@@ -85,17 +88,13 @@ class SensorFragment : Fragment() {
             .build()
 
         client.newCall(request).enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) {
-                // optioneel: log of toon foutmelding
-            }
+            override fun onFailure(call: Call, e: IOException) {}
             override fun onResponse(call: Call, response: Response) {
                 response.body?.string()?.let { body ->
                     val jsonArray = JSONObject(body).getJSONArray("items")
                     dataList = List(jsonArray.length()) { i -> jsonArray.getJSONObject(i) }
-
                     activity?.runOnUiThread {
                         if (isAdded) {
-                            // Behoud de huidige selectie en update de grafiek
                             val selected = allOptions[sensorSpinner.selectedItemPosition]
                             updateChart(selected)
                         }
@@ -106,15 +105,19 @@ class SensorFragment : Fragment() {
     }
 
     private fun updateChart(selectedKey: String) {
-        // Als we nog geen data hebben, niks doen
         if (dataList.isEmpty()) return
 
         val labels = mutableListOf<String>()
         val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 
+        // Clear any existing limit lines
+        val leftAxis = lineChart.axisLeft
+        leftAxis.removeAllLimitLines()
+
+        val dataSets = mutableListOf<ILineDataSet>()
+
         if (selectedKey == "All Sensors") {
-            val dataSets = mutableListOf<ILineDataSet>()
-            for ((index, sensorKey) in sensorKeys.withIndex()) {
+            sensorKeys.forEachIndexed { index, sensorKey ->
                 val entries = mutableListOf<Entry>()
                 dataList.forEachIndexed { i, item ->
                     val value = item.optInt(sensorKey, -1)
@@ -134,13 +137,17 @@ class SensorFragment : Fragment() {
                 }
                 dataSets.add(ds)
             }
-            lineChart.data = LineData(dataSets)
             lineChart.legend.apply {
                 isEnabled = true
                 verticalAlignment = Legend.LegendVerticalAlignment.BOTTOM
                 form = Legend.LegendForm.LINE
             }
+
+            // No boundary lines when all sensors
+            lineChart.marker = null
         } else {
+            // Single sensor
+            val idx = sensorKeys.indexOf(selectedKey)
             val entries = mutableListOf<Entry>()
             dataList.forEachIndexed { i, item ->
                 val value = item.optInt(selectedKey, -1)
@@ -154,12 +161,33 @@ class SensorFragment : Fragment() {
                 lineWidth = 2f
                 setDrawCircles(false)
                 setDrawValues(false)
-                color = sensorColors[sensorKeys.indexOf(selectedKey) % sensorColors.size]
+                color = sensorColors[idx % sensorColors.size]
             }
-            lineChart.data = LineData(ds)
+            dataSets.add(ds)
+
+            // Add boundary lines
+            leftAxis.addLimitLine(LimitLine(dryValues[idx], "Dry").apply {
+                lineWidth = 2f
+                lineColor = android.graphics.Color.RED
+                textColor = android.graphics.Color.RED
+                textSize = 12f
+            })
+            leftAxis.addLimitLine(LimitLine(wetValues[idx], "Wet").apply {
+                lineWidth = 2f
+                lineColor = android.graphics.Color.RED
+                textColor = android.graphics.Color.RED
+                textSize = 12f
+            })
+
             lineChart.legend.isEnabled = false
+
+            // Correct marker assignment
+            lineChart.marker = CustomMarkerView(requireContext()).also { marker ->
+                marker.chartView = lineChart
+            }
         }
 
+        lineChart.data = LineData(dataSets)
         lineChart.apply {
             xAxis.apply {
                 valueFormatter = IndexAxisValueFormatter(labels)
@@ -171,16 +199,6 @@ class SensorFragment : Fragment() {
             setPinchZoom(true)
             description.isEnabled = false
             animateX(1000)
-
-            // Marker alleen instellen als er data is
-            if (data != null && data.dataSetCount > 0) {
-                val marker = CustomMarkerView(requireContext())
-                marker.chartView = this
-                this.marker = marker
-            } else {
-                this.marker = null
-            }
-
             invalidate()
         }
     }
