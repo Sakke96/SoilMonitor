@@ -1,3 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">SoilMonitor</string>
+
+
+    <!-- Titles en labels voor SettingsFragment -->
+    <string name="settings_general_title">Algemene instellingen</string>
+    <string name="settings_notifications">Notificaties aan/uit</string>
+    <string name="settings_refresh_interval_hint">Refresh-interval (minuten)</string>
+
+    <string name="settings_display_title">Weergave-opties</string>
+    <string name="settings_gridlines">Rasterlijnen tonen</string>
+    <string name="settings_temp_unit">Temperatuureenheid</string>
+
+    <string name="settings_advanced_title">Geavanceerd / Debug</string>
+    <string name="settings_debug_mode">Debug-modus</string>
+    <string name="settings_clear_cache">Cache legen</string>
+
+    <!-- Array voor je Spinner -->
+    <string-array name="temp_units">
+        <item>°C</item>
+        <item>°F</item>
+    </string-array>
+
+    <string name="nav_graph">Grafiek</string>
+    <string name="nav_other1">Overig 1</string>
+    <string name="nav_home">Home</string>
+    <string name="nav_other2">Overig 2</string>
+    <string name="nav_settings">Instellingen</string>
+
+
 </resources>

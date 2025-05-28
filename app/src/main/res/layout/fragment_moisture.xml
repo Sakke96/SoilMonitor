@@ -7,35 +7,100 @@
     android:columnCount="2"
     android:padding="16dp">
 
-    <com.example.soilmonitor.WaveView
-        android:id="@+id/plant1"
+    <!-- Plant 1 -->
+    <FrameLayout
         android:layout_width="0dp"
         android:layout_height="150dp"
         android:layout_columnWeight="1"
         android:layout_rowWeight="1"
-        android:layout_margin="8dp" />
+        android:layout_margin="8dp">
 
-    <com.example.soilmonitor.WaveView
-        android:id="@+id/plant2"
-        android:layout_width="0dp"
-        android:layout_height="150dp"
-        android:layout_columnWeight="1"
-        android:layout_rowWeight="1"
-        android:layout_margin="8dp" />
+        <com.example.soilmonitor.WaveView
+            android:id="@+id/plant1"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
 
-    <com.example.soilmonitor.WaveView
-        android:id="@+id/plant3"
-        android:layout_width="0dp"
-        android:layout_height="150dp"
-        android:layout_columnWeight="1"
-        android:layout_rowWeight="1"
-        android:layout_margin="8dp" />
+        <TextView
+            android:id="@+id/plant1Value"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0%"
+            android:textStyle="bold"
+            android:textSize="18sp"
+            android:textColor="@android:color/black"
+            android:layout_gravity="center" />
+    </FrameLayout>
 
-    <com.example.soilmonitor.WaveView
-        android:id="@+id/plant4"
+    <!-- Plant 2 -->
+    <FrameLayout
         android:layout_width="0dp"
         android:layout_height="150dp"
         android:layout_columnWeight="1"
         android:layout_rowWeight="1"
-        android:layout_margin="8dp" />
+        android:layout_margin="8dp">
+
+        <com.example.soilmonitor.WaveView
+            android:id="@+id/plant2"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <TextView
+            android:id="@+id/plant2Value"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0%"
+            android:textStyle="bold"
+            android:textSize="18sp"
+            android:textColor="@android:color/black"
+            android:layout_gravity="center" />
+    </FrameLayout>
+
+    <!-- Plant 3 -->
+    <FrameLayout
+        android:layout_width="0dp"
+        android:layout_height="150dp"
+        android:layout_columnWeight="1"
+        android:layout_rowWeight="1"
+        android:layout_margin="8dp">
+
+        <com.example.soilmonitor.WaveView
+            android:id="@+id/plant3"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <TextView
+            android:id="@+id/plant3Value"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0%"
+            android:textStyle="bold"
+            android:textSize="18sp"
+            android:textColor="@android:color/black"
+            android:layout_gravity="center" />
+    </FrameLayout>
+
+    <!-- Plant 4 -->
+    <FrameLayout
+        android:layout_width="0dp"
+        android:layout_height="150dp"
+        android:layout_columnWeight="1"
+        android:layout_rowWeight="1"
+        android:layout_margin="8dp">
+
+        <com.example.soilmonitor.WaveView
+            android:id="@+id/plant4"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <TextView
+            android:id="@+id/plant4Value"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0%"
+            android:textStyle="bold"
+            android:textSize="18sp"
+            android:textColor="@android:color/black"
+            android:layout_gravity="center" />
+    </FrameLayout>
+
 </GridLayout>

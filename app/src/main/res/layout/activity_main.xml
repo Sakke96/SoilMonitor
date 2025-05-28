@@ -1,60 +1,92 @@
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/container_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
     tools:context=".MainActivity">
 
+    <!-- Fragment placeholder -->
     <FrameLayout
         android:id="@+id/fragment_container"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"/>
+        android:layout_weight="1" />
 
+    <!-- Bottom-nav met emoji’s -->
     <LinearLayout
         android:id="@+id/bottomNav"
         android:layout_width="match_parent"
-        android:layout_height="72dp"
+        android:layout_height="56dp"
         android:orientation="horizontal"
-        android:gravity="center"
-        android:background="#dddddd"
-        android:padding="8dp">
+        android:background="#EEEEEE">
 
-        <ImageButton
+        <TextView
             android:id="@+id/btnGraph"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:background="?attr/selectableItemBackground"
-            android:src="@android:drawable/ic_menu_info_details"
-            android:contentDescription="Graph" />
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:padding="8dp"
+            android:text="📊"
+            android:textSize="24sp"
+            android:background="@drawable/nav_button_bg"
+            android:foreground="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/nav_graph" />
 
-        <ImageButton
+        <TextView
             android:id="@+id/btnOther1"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:background="?attr/selectableItemBackground"
-            android:contentDescription="Other1" />
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:padding="8dp"
+            android:text="🧭"
+            android:textSize="24sp"
+            android:background="@drawable/nav_button_bg"
+            android:foreground="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/nav_other1" />
 
-        <ImageButton
+        <TextView
             android:id="@+id/btnHome"
-            android:layout_width="64dp"
-            android:layout_height="64dp"
-            android:background="?attr/selectableItemBackground"
-            android:src="@android:drawable/ic_menu_view"
-            android:contentDescription="Home" />
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:padding="8dp"
+            android:text="🏠"
+            android:textSize="24sp"
+            android:background="@drawable/nav_button_bg"
+            android:foreground="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/nav_home" />
 
-        <ImageButton
+        <TextView
             android:id="@+id/btnOther2"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:background="?attr/selectableItemBackground"
-            android:contentDescription="Other2" />
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:padding="8dp"
+            android:text="🗺️"
+            android:textSize="24sp"
+            android:background="@drawable/nav_button_bg"
+            android:foreground="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/nav_other2" />
 
-        <ImageButton
+        <TextView
             android:id="@+id/btnSettings"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:background="?attr/selectableItemBackground"
-            android:contentDescription="Settings" />
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:padding="8dp"
+            android:text="⚙️"
+            android:textSize="24sp"
+            android:background="@drawable/nav_button_bg"
+            android:foreground="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/nav_settings" />
+
     </LinearLayout>
 </LinearLayout>
