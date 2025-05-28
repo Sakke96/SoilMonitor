@@ -1,24 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
-
-    <!-- Geselecteerd: gekleurde cirkel van 48dp -->
+    <!-- Geselecteerd: accentkleur -->
     <item android:state_selected="true">
         <shape android:shape="oval">
-            <size
-                android:width="48dp"
-                android:height="48dp"/>
+            <!-- Vervang @color/colorPrimary eventueel door een bestaande kleur in jouw project -->
             <solid android:color="@color/colorPrimary"/>
         </shape>
     </item>
 
-    <!-- Niet geselecteerd: transparante cirkel van 48dp -->
+    <!-- Niet geselecteerd: transparant -->
     <item>
         <shape android:shape="oval">
-            <size
-                android:width="48dp"
-                android:height="48dp"/>
             <solid android:color="@android:color/transparent"/>
         </shape>
     </item>
-
 </selector>

@@ -15,7 +15,24 @@
         android:layout_rowWeight="1"
         android:layout_margin="8dp">
 
-        <!-- Label -->
+        <com.example.soilmonitor.WaveView
+            android:id="@+id/plant1"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <!-- Value overlay -->
+        <TextView
+            android:id="@+id/plant1Value"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0%"
+            android:textStyle="bold"
+            android:textSize="18sp"
+            android:textColor="@android:color/black"
+            android:layout_gravity="center"
+            android:elevation="4dp" />
+
+        <!-- Label on top -->
         <TextView
             android:id="@+id/plant1Label"
             android:layout_width="wrap_content"
@@ -25,22 +42,8 @@
             android:textSize="14sp"
             android:textColor="@android:color/black"
             android:layout_gravity="top|start"
-            android:padding="4dp" />
-
-        <com.example.soilmonitor.WaveView
-            android:id="@+id/plant1"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent" />
-
-        <TextView
-            android:id="@+id/plant1Value"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="0%"
-            android:textStyle="bold"
-            android:textSize="18sp"
-            android:textColor="@android:color/black"
-            android:layout_gravity="center" />
+            android:padding="4dp"
+            android:elevation="6dp" />
     </FrameLayout>
 
     <!-- Plant 2 -->
@@ -50,18 +53,6 @@
         android:layout_columnWeight="1"
         android:layout_rowWeight="1"
         android:layout_margin="8dp">
-
-        <!-- Label -->
-        <TextView
-            android:id="@+id/plant2Label"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Plant 2"
-            android:textStyle="bold"
-            android:textSize="14sp"
-            android:textColor="@android:color/black"
-            android:layout_gravity="top|start"
-            android:padding="4dp" />
 
         <com.example.soilmonitor.WaveView
             android:id="@+id/plant2"
@@ -76,7 +67,20 @@
             android:textStyle="bold"
             android:textSize="18sp"
             android:textColor="@android:color/black"
-            android:layout_gravity="center" />
+            android:layout_gravity="center"
+            android:elevation="4dp" />
+
+        <TextView
+            android:id="@+id/plant2Label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Plant 2"
+            android:textStyle="bold"
+            android:textSize="14sp"
+            android:textColor="@android:color/black"
+            android:layout_gravity="top|start"
+            android:padding="4dp"
+            android:elevation="6dp" />
     </FrameLayout>
 
     <!-- Plant 3 -->
@@ -86,18 +90,6 @@
         android:layout_columnWeight="1"
         android:layout_rowWeight="1"
         android:layout_margin="8dp">
-
-        <!-- Label -->
-        <TextView
-            android:id="@+id/plant3Label"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Plant 3"
-            android:textStyle="bold"
-            android:textSize="14sp"
-            android:textColor="@android:color/black"
-            android:layout_gravity="top|start"
-            android:padding="4dp" />
 
         <com.example.soilmonitor.WaveView
             android:id="@+id/plant3"
@@ -112,7 +104,20 @@
             android:textStyle="bold"
             android:textSize="18sp"
             android:textColor="@android:color/black"
-            android:layout_gravity="center" />
+            android:layout_gravity="center"
+            android:elevation="4dp" />
+
+        <TextView
+            android:id="@+id/plant3Label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Plant 3"
+            android:textStyle="bold"
+            android:textSize="14sp"
+            android:textColor="@android:color/black"
+            android:layout_gravity="top|start"
+            android:padding="4dp"
+            android:elevation="6dp" />
     </FrameLayout>
 
     <!-- Plant 4 -->
@@ -122,18 +127,6 @@
         android:layout_columnWeight="1"
         android:layout_rowWeight="1"
         android:layout_margin="8dp">
-
-        <!-- Label -->
-        <TextView
-            android:id="@+id/plant4Label"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Plant 4"
-            android:textStyle="bold"
-            android:textSize="14sp"
-            android:textColor="@android:color/black"
-            android:layout_gravity="top|start"
-            android:padding="4dp" />
 
         <com.example.soilmonitor.WaveView
             android:id="@+id/plant4"
@@ -148,7 +141,20 @@
             android:textStyle="bold"
             android:textSize="18sp"
             android:textColor="@android:color/black"
-            android:layout_gravity="center" />
+            android:layout_gravity="center"
+            android:elevation="4dp" />
+
+        <TextView
+            android:id="@+id/plant4Label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Plant 4"
+            android:textStyle="bold"
+            android:textSize="14sp"
+            android:textColor="@android:color/black"
+            android:layout_gravity="top|start"
+            android:padding="4dp"
+            android:elevation="6dp" />
     </FrameLayout>
 
 </GridLayout>

@@ -24,9 +24,9 @@ class MainActivity : AppCompatActivity() {
         btnOther2   = findViewById(R.id.btnOther2)
         btnSettings = findViewById(R.id.btnSettings)
 
-        // Standaard: SensorFragment
-        selectButton(btnGraph)
-        loadFragment(SensorFragment())
+        // Standaard: MoistureFragment (in plaats van SensorFragment)
+        selectButton(btnHome)
+        loadFragment(MoistureFragment())
 
         // Click listeners
         btnGraph.setOnClickListener {
@@ -64,6 +64,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun selectButton(selected: TextView) {
         val allButtons = listOf(btnGraph, btnOther1, btnHome, btnOther2, btnSettings)
-        allButtons.forEach { it.isSelected = it == selected }
+        allButtons.forEach { it.isSelected = (it == selected) }
     }
 }

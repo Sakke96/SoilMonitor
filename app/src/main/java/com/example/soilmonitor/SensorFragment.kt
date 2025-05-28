@@ -29,8 +29,17 @@ class SensorFragment : Fragment() {
     private lateinit var lineChart: LineChart
     private lateinit var sensorSpinner: Spinner
     private var dataList: List<JSONObject> = emptyList()
+
+    // Internal sensor keys
     private val sensorKeys = listOf("sensor_u0", "sensor_u1", "sensor_u2", "sensor_u3")
-    private val allOptions = listOf("All Sensors") + sensorKeys
+    // User-facing labels for spinner and legend
+    private val sensorLabels = listOf(
+        "All Sensors",
+        "Plant 1 (su0)",
+        "Plant 2 (su1)",
+        "Plant 3 (su2)",
+        "Plant 4 (su3)"
+    )
 
     // Calibration values for boundary lines
     private val dryValues = listOf(372f, 318f, 359f, 421f)
@@ -61,14 +70,15 @@ class SensorFragment : Fragment() {
         lineChart = view.findViewById(R.id.lineChart)
         sensorSpinner = view.findViewById(R.id.sensorSpinner)
 
-        val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, allOptions)
+        // Use user-facing labels in spinner
+        val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, sensorLabels)
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         sensorSpinner.adapter = adapter
         sensorSpinner.setSelection(0, false)
 
         sensorSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>, view: View?, position: Int, id: Long) {
-                updateChart(allOptions[position])
+                updateChart(position)
             }
             override fun onNothingSelected(parent: AdapterView<*>) {}
         }
@@ -94,97 +104,85 @@ class SensorFragment : Fragment() {
                     val jsonArray = JSONObject(body).getJSONArray("items")
                     dataList = List(jsonArray.length()) { i -> jsonArray.getJSONObject(i) }
                     activity?.runOnUiThread {
-                        if (isAdded) {
-                            val selected = allOptions[sensorSpinner.selectedItemPosition]
-                            updateChart(selected)
-                        }
+                        if (isAdded) updateChart(sensorSpinner.selectedItemPosition)
                     }
                 }
             }
         })
     }
 
-    private fun updateChart(selectedKey: String) {
+    private fun updateChart(selectionIndex: Int) {
         if (dataList.isEmpty()) return
 
         val labels = mutableListOf<String>()
         val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 
-        // Clear any existing limit lines
+        // Clear axis and marker
         val leftAxis = lineChart.axisLeft
         leftAxis.removeAllLimitLines()
+        lineChart.marker = null
 
         val dataSets = mutableListOf<ILineDataSet>()
 
-        if (selectedKey == "All Sensors") {
-            sensorKeys.forEachIndexed { index, sensorKey ->
+        if (selectionIndex == 0) {
+            // All sensors
+            sensorKeys.forEachIndexed { idx, key ->
                 val entries = mutableListOf<Entry>()
                 dataList.forEachIndexed { i, item ->
-                    val value = item.optInt(sensorKey, -1)
-                    if (value >= 0) {
-                        entries.add(Entry(i.toFloat(), value.toFloat()))
+                    val v = item.optInt(key, -1)
+                    if (v >= 0) {
+                        entries.add(Entry(i.toFloat(), v.toFloat()))
                         if (labels.size <= i) {
                             val t = OffsetDateTime.parse(item.getString("created_at")).plusHours(2)
                             labels.add(t.format(timeFormatter))
                         }
                     }
                 }
-                val ds = LineDataSet(entries, sensorKey).apply {
+                LineDataSet(entries, sensorLabels[idx+1]).apply {
                     lineWidth = 2f
                     setDrawCircles(false)
                     setDrawValues(false)
-                    color = sensorColors[index % sensorColors.size]
-                }
-                dataSets.add(ds)
+                    color = sensorColors[idx]
+                }.also { dataSets.add(it) }
             }
             lineChart.legend.apply {
                 isEnabled = true
                 verticalAlignment = Legend.LegendVerticalAlignment.BOTTOM
                 form = Legend.LegendForm.LINE
             }
-
-            // No boundary lines when all sensors
-            lineChart.marker = null
         } else {
             // Single sensor
-            val idx = sensorKeys.indexOf(selectedKey)
+            val idx = selectionIndex - 1
+            val key = sensorKeys[idx]
+
             val entries = mutableListOf<Entry>()
             dataList.forEachIndexed { i, item ->
-                val value = item.optInt(selectedKey, -1)
-                if (value >= 0) {
-                    entries.add(Entry(i.toFloat(), value.toFloat()))
+                val v = item.optInt(key, -1)
+                if (v >= 0) {
+                    entries.add(Entry(i.toFloat(), v.toFloat()))
                     val t = OffsetDateTime.parse(item.getString("created_at")).plusHours(2)
                     labels.add(t.format(timeFormatter))
                 }
             }
-            val ds = LineDataSet(entries, selectedKey).apply {
+            LineDataSet(entries, sensorLabels[selectionIndex]).apply {
                 lineWidth = 2f
                 setDrawCircles(false)
                 setDrawValues(false)
-                color = sensorColors[idx % sensorColors.size]
-            }
-            dataSets.add(ds)
+                color = sensorColors[idx]
+            }.also { dataSets.add(it) }
 
-            // Add boundary lines
+            // Boundary lines
             leftAxis.addLimitLine(LimitLine(dryValues[idx], "Dry").apply {
-                lineWidth = 2f
-                lineColor = android.graphics.Color.RED
-                textColor = android.graphics.Color.RED
-                textSize = 12f
+                lineWidth = 2f; lineColor = android.graphics.Color.RED; textColor = android.graphics.Color.RED; textSize = 12f
             })
             leftAxis.addLimitLine(LimitLine(wetValues[idx], "Wet").apply {
-                lineWidth = 2f
-                lineColor = android.graphics.Color.RED
-                textColor = android.graphics.Color.RED
-                textSize = 12f
+                lineWidth = 2f; lineColor = android.graphics.Color.RED; textColor = android.graphics.Color.RED; textSize = 12f
             })
 
             lineChart.legend.isEnabled = false
 
-            // Correct marker assignment
-            lineChart.marker = CustomMarkerView(requireContext()).also { marker ->
-                marker.chartView = lineChart
-            }
+            // Marker
+            lineChart.marker = CustomMarkerView(requireContext()).also { it.chartView = lineChart }
         }
 
         lineChart.data = LineData(dataSets)
