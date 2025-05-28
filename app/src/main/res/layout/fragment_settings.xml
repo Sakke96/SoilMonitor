@@ -107,5 +107,14 @@
             android:layout_height="wrap_content"
             android:text="Cache legen"/>
 
+        <!-- NEW: Decimate button -->
+        <Button
+            android:id="@+id/button_decimate"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Decimate"
+            android:layout_marginBottom="24dp"/>
+
+
     </LinearLayout>
 </ScrollView>
