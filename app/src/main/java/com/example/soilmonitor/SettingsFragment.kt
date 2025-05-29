@@ -1,15 +1,14 @@
+// SettingsFragment.kt
 package com.example.soilmonitor
 
 import android.content.SharedPreferences
 import android.os.Bundle
 import android.preference.PreferenceManager
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
-import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.NumberPicker
 import android.widget.Spinner
@@ -29,7 +28,7 @@ class SettingsFragment : Fragment() {
     private lateinit var spinnerTempUnit: Spinner
     private lateinit var switchDebugMode: SwitchMaterial
     private lateinit var buttonClearCache: Button
-    private lateinit var buttonDecimate: Button   // <-- new
+    private lateinit var buttonDecimate: Button
     private lateinit var prefs: SharedPreferences
 
     // OkHttp client shared:
@@ -52,11 +51,25 @@ class SettingsFragment : Fragment() {
         spinnerTempUnit        = root.findViewById(R.id.spinner_temp_unit)
         switchDebugMode        = root.findViewById(R.id.switch_debug_mode)
         buttonClearCache       = root.findViewById(R.id.button_clear_cache)
-        buttonDecimate         = root.findViewById(R.id.button_decimate)  // <-- bind
+        buttonDecimate         = root.findViewById(R.id.button_decimate)
 
         // Load defaults
         editRefreshInterval.setText(prefs.getInt("refreshInterval", 5).toString())
         switchNotifications.isChecked = prefs.getBoolean("notifications", true)
+
+        // Listen for toggle changes
+        switchNotifications.setOnCheckedChangeListener { _, isChecked ->
+            prefs.edit().putBoolean("notifications", isChecked).apply()
+            if (isChecked) {
+                // reset all last-alert timestamps
+                val plantCount = prefs.getInt("plantCount", 4)
+                prefs.edit().apply {
+                    for (i in 1..plantCount) {
+                        putLong("plant_${i}_last_alert", 0L)
+                    }
+                }.apply()
+            }
+        }
 
         // NumberPicker setup…
         numberPickerPlants.minValue = 1
@@ -73,7 +86,7 @@ class SettingsFragment : Fragment() {
             // TODO: cache-clear logic
         }
 
-        // NEW: Decimate button listener
+        // Decimate button listener
         buttonDecimate.setOnClickListener {
             val request = Request.Builder()
                 .url("https://g2f12813f9dfc61-garden.adb.eu-paris-1.oraclecloudapps.com/ords/admin/log/decimate")
@@ -82,11 +95,9 @@ class SettingsFragment : Fragment() {
 
             client.newCall(request).enqueue(object : Callback {
                 override fun onFailure(call: Call, e: IOException) {
-                    Log.e("SettingsFragment", "Decimate request failed", e)
+                    // log if needed
                 }
-
                 override fun onResponse(call: Call, response: Response) {
-                    // nothing further to do; server handles it
                     response.close()
                 }
             })

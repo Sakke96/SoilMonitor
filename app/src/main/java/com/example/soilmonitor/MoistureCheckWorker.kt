@@ -1,3 +1,4 @@
+// MoistureCheckWorker.kt
 package com.example.soilmonitor
 
 import android.Manifest
@@ -27,6 +28,11 @@ class MoistureCheckWorker(
     override fun doWork(): Result {
         val ctx   = applicationContext
         val prefs = PreferenceManager.getDefaultSharedPreferences(ctx)
+
+        // only send alerts if user enabled notifications
+        if (!prefs.getBoolean("notifications", false)) {
+            return Result.success()
+        }
 
         val plantCount = prefs.getInt("plantCount", 4).coerceIn(1, 9)
         val sensorKeys = List(plantCount) { i -> "sensor_u$i" }

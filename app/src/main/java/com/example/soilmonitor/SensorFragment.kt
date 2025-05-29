@@ -10,6 +10,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
+import android.widget.CheckBox
 import android.widget.Spinner
 import androidx.fragment.app.Fragment
 import com.github.mikephil.charting.charts.LineChart
@@ -24,22 +25,28 @@ import com.github.mikephil.charting.interfaces.datasets.ILineDataSet
 import okhttp3.*
 import org.json.JSONObject
 import java.io.IOException
+import java.time.LocalDate
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 import kotlin.math.max
 import kotlin.math.min
 
 class SensorFragment : Fragment() {
+    // UI
     private lateinit var lineChart: LineChart
     private lateinit var sensorSpinner: Spinner
-    private lateinit var prefs: SharedPreferences
+    private lateinit var hideNightCheckBox: CheckBox
+    private lateinit var hideSeparatorCheckBox: CheckBox
 
-    // Runtime-built lists
+    // prefs + data
+    private lateinit var prefs: SharedPreferences
+    private var dataList: List<JSONObject> = emptyList()
+
+    // runtime lists
     private lateinit var sensorKeys: List<String>
     private lateinit var sensorLabels: List<String>
     private lateinit var dryValues: List<Float>
     private lateinit var wetValues: List<Float>
-
     private val sensorColors = listOf(
         android.graphics.Color.RED,
         android.graphics.Color.BLUE,
@@ -47,7 +54,7 @@ class SensorFragment : Fragment() {
         android.graphics.Color.MAGENTA
     )
 
-    private var dataList: List<JSONObject> = emptyList()
+    // auto-refresh
     private val handler = Handler(Looper.getMainLooper())
     private val refreshRunnable = object : Runnable {
         override fun run() {
@@ -67,12 +74,11 @@ class SensorFragment : Fragment() {
         prefs = PreferenceManager.getDefaultSharedPreferences(requireContext())
         lineChart = view.findViewById(R.id.lineChart)
         sensorSpinner = view.findViewById(R.id.sensorSpinner)
+        hideNightCheckBox = view.findViewById(R.id.hideNightCheckBox)
+        hideSeparatorCheckBox = view.findViewById(R.id.hideSeparatorCheckBox)
 
-        /* ------------ 1.  Build lists from Settings  ----------- */
-
+        // Build sensor lists from prefs
         val plantCount = prefs.getInt("plantCount", 4)
-
-        // ensure defaults are present
         for (i in 1..plantCount) {
             val dryKey = "plant_${i}_dry"
             val wetKey = "plant_${i}_wet"
@@ -89,15 +95,12 @@ class SensorFragment : Fragment() {
                 prefs.edit().putFloat(wetKey, defaultWet).apply()
             }
         }
-
         sensorKeys   = List(plantCount) { i -> "sensor_u$i" }
-        sensorLabels = listOf("All Sensors") +
-                List(plantCount) { i -> "Plant ${i + 1}" }
-        dryValues    = List(plantCount) { i -> prefs.getFloat("plant_${i + 1}_dry", 0f) }
-        wetValues    = List(plantCount) { i -> prefs.getFloat("plant_${i + 1}_wet", 100f) }
+        sensorLabels = listOf("All Sensors") + List(plantCount) { i -> "Plant ${i+1}" }
+        dryValues    = List(plantCount) { i -> prefs.getFloat("plant_${i+1}_dry", 0f) }
+        wetValues    = List(plantCount) { i -> prefs.getFloat("plant_${i+1}_wet", 100f) }
 
-        /* ------------ 2.  Spinner  ------------------------------ */
-
+        // Spinner setup
         ArrayAdapter(
             requireContext(),
             android.R.layout.simple_spinner_item,
@@ -108,14 +111,21 @@ class SensorFragment : Fragment() {
         }
         sensorSpinner.setSelection(0, false)
         sensorSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(
-                parent: AdapterView<*>, view: View?, position: Int, id: Long
-            ) {
-                updateChart(position)
+            override fun onItemSelected(parent: AdapterView<*>, view: View?, pos: Int, id: Long) {
+                updateChart(pos)
             }
             override fun onNothingSelected(parent: AdapterView<*>) {}
         }
 
+        // Checkbox listeners
+        hideNightCheckBox.setOnCheckedChangeListener { _, _ ->
+            updateChart(sensorSpinner.selectedItemPosition)
+        }
+        hideSeparatorCheckBox.setOnCheckedChangeListener { _, _ ->
+            updateChart(sensorSpinner.selectedItemPosition)
+        }
+
+        // start auto-refresh
         handler.post(refreshRunnable)
     }
 
@@ -124,15 +134,13 @@ class SensorFragment : Fragment() {
         handler.removeCallbacks(refreshRunnable)
     }
 
-    /* ------------ 3.  REST fetch  ------------------------------ */
-
     private fun fetchSoilData() {
         OkHttpClient().newCall(
             Request.Builder()
                 .url("https://g2f12813f9dfc61-garden.adb.eu-paris-1.oraclecloudapps.com/ords/admin/log/log")
                 .build()
         ).enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) {/* ignore */}
+            override fun onFailure(call: Call, e: IOException) { /* ignore */ }
             override fun onResponse(call: Call, response: Response) {
                 response.body?.string()?.let { body ->
                     val jsonArray = JSONObject(body).getJSONArray("items")
@@ -145,113 +153,120 @@ class SensorFragment : Fragment() {
         })
     }
 
-    /* ------------ 4.  Chart logic  ----------------------------- */
-
     private fun updateChart(selectionIndex: Int) {
         if (dataList.isEmpty()) return
 
-        val labels = mutableListOf<String>()
-        val timeFmt = DateTimeFormatter.ofPattern("HH:mm")
+        // 0. CLEAR previous state
         val leftAxis = lineChart.axisLeft
         leftAxis.removeAllLimitLines()
+        leftAxis.resetAxisMinimum()
+        leftAxis.resetAxisMaximum()
         lineChart.marker = null
 
-        val dataSets = mutableListOf<ILineDataSet>()
+        // 1. read checkboxes
+        val hideNight      = hideNightCheckBox.isChecked
+        val hideSeparators = hideSeparatorCheckBox.isChecked
 
-        if (selectionIndex == 0) {
-            /* ---- 4A.  ALL sensors – keep MPAndroidChart’s auto-scaling ---- */
+        // 2. prepare x-axis
+        val labels  = mutableListOf<String>()
+        val xAxis   = lineChart.xAxis
+        val timeFmt = DateTimeFormatter.ofPattern("HH:mm")
+        val dateFmt = DateTimeFormatter.ofPattern("dd MMM")
 
-            sensorKeys.forEachIndexed { idx, key ->
-                val entries = mutableListOf<Entry>()
-                dataList.forEachIndexed { i, item ->
-                    item.optInt(key, -1).takeIf { it >= 0 }?.let { v ->
-                        entries.add(Entry(i.toFloat(), v.toFloat()))
-                        if (labels.size <= i) {
-                            labels.add(
-                                OffsetDateTime.parse(item.getString("created_at"))
-                                    .plusHours(2)
-                                    .format(timeFmt)
-                            )
-                        }
-                    }
+        xAxis.removeAllLimitLines()
+        xAxis.setDrawLimitLinesBehindData(true)
+
+        // 3. filter & optionally add day lines
+        val visibleIdx = mutableListOf<Int>()
+        var lastDate: LocalDate? = null
+
+        dataList.forEachIndexed { rawIdx, item ->
+            val ts = OffsetDateTime.parse(item.getString("created_at")).plusHours(2)
+            if (hideNight && ts.hour < 6) return@forEachIndexed
+
+            val curDate = ts.toLocalDate()
+            if (!hideSeparators && curDate != lastDate) {
+                val ll = LimitLine(visibleIdx.size.toFloat(), curDate.format(dateFmt)).apply {
+                    lineWidth = 1f
+                    labelPosition = LimitLine.LimitLabelPosition.RIGHT_TOP
+                    textSize = 10f
                 }
-                dataSets += LineDataSet(entries, sensorLabels[idx + 1]).apply {
-                    lineWidth = 2f
-                    setDrawCircles(false)
-                    setDrawValues(false)
-                    color = sensorColors.getOrElse(idx) { android.graphics.Color.BLACK }
+                xAxis.addLimitLine(ll)
+                lastDate = curDate
+            }
+
+            labels += ts.format(timeFmt)
+            visibleIdx += rawIdx
+        }
+
+        // 4. build data sets
+        val dataSets = mutableListOf<ILineDataSet>()
+        if (selectionIndex == 0) {
+            // ALL SENSORS
+            sensorKeys.forEachIndexed { idx, key ->
+                val entries = visibleIdx.mapIndexedNotNull { pos, rawIdx ->
+                    dataList[rawIdx].optInt(key, -1)
+                        .takeIf { it >= 0 }
+                        ?.let { Entry(pos.toFloat(), it.toFloat()) }
+                }
+                if (entries.isNotEmpty()) {
+                    dataSets += LineDataSet(entries, sensorLabels[idx+1]).apply {
+                        lineWidth = 2f
+                        setDrawCircles(false)
+                        setDrawValues(false)
+                        color = sensorColors.getOrElse(idx) { android.graphics.Color.BLACK }
+                    }
                 }
             }
             lineChart.legend.apply {
                 isEnabled = true
-                verticalAlignment = Legend.LegendVerticalAlignment.BOTTOM
                 form = Legend.LegendForm.LINE
+                verticalAlignment = Legend.LegendVerticalAlignment.BOTTOM
             }
-            lineChart.setAutoScaleMinMaxEnabled(true) // <-- AUTO again
+            lineChart.setAutoScaleMinMaxEnabled(true)
         } else {
-            /* ---- 4B.  Single sensor with controlled zoom ---- */
-
+            // SINGLE SENSOR
             val idx = selectionIndex - 1
             val key = sensorKeys[idx]
-            val entries = mutableListOf<Entry>()
-
-            dataList.forEachIndexed { i, item ->
-                item.optInt(key, -1).takeIf { it >= 0 }?.let { v ->
-                    entries.add(Entry(i.toFloat(), v.toFloat()))
-                    labels.add(
-                        OffsetDateTime.parse(item.getString("created_at"))
-                            .plusHours(2)
-                            .format(timeFmt)
-                    )
-                }
+            val entries = visibleIdx.mapIndexedNotNull { pos, rawIdx ->
+                dataList[rawIdx].optInt(key, -1)
+                    .takeIf { it >= 0 }
+                    ?.let { Entry(pos.toFloat(), it.toFloat()) }
             }
-
             dataSets += LineDataSet(entries, sensorLabels[selectionIndex]).apply {
                 lineWidth = 2f
                 setDrawCircles(false)
                 setDrawValues(false)
                 color = sensorColors.getOrElse(idx) { android.graphics.Color.BLACK }
             }
-
-            /* 4B-1. Limit lines */
-            val wet = wetValues[idx]
-            val dry = dryValues[idx]
-            leftAxis.addLimitLine(LimitLine(dry, "Dry"))
-            leftAxis.addLimitLine(LimitLine(wet, "Wet"))
-
-            /* 4B-2. Axis bounds */
-            val minRange = min(wet, dry)
-            val maxRange = max(wet, dry)
-            val span     = maxRange - minRange        // full “normal” range
-
-            var axisMin = minRange
-            var axisMax = maxRange
-
+            // wet/dry bands
+            leftAxis.apply {
+                addLimitLine(LimitLine(dryValues[idx], "Dry"))
+                addLimitLine(LimitLine(wetValues[idx], "Wet"))
+            }
+            // manual Y bounds
+            val minRange = min(wetValues[idx], dryValues[idx])
+            val maxRange = max(wetValues[idx], dryValues[idx])
+            val span     = maxRange - minRange
+            var axisMin  = minRange
+            var axisMax  = maxRange
             if (entries.isNotEmpty()) {
                 val dataMin = entries.minOf { it.y }
                 val dataMax = entries.maxOf { it.y }
-
-                if (dataMin < minRange) {
-                    axisMin = max(dataMin, minRange - span)   // ≤ 100 % below
-                }
-                if (dataMax > maxRange) {
-                    axisMax = min(dataMax, maxRange + span)   // ≤ 100 % above
-                }
+                if (dataMin < minRange) axisMin = max(dataMin, minRange - span)
+                if (dataMax > maxRange) axisMax = min(dataMax, maxRange + span)
             }
-
             leftAxis.axisMinimum = axisMin
             leftAxis.axisMaximum = axisMax
             lineChart.setAutoScaleMinMaxEnabled(false)
 
+            lineChart.marker = CustomMarkerView(requireContext()).also { it.chartView = lineChart }
             lineChart.legend.isEnabled = false
-            lineChart.marker = CustomMarkerView(requireContext())
-                .also { it.chartView = lineChart }
         }
 
-        /* ---- 4C.  Chart cosmetics shared by both branches ---- */
-
+        // 5. final chart draw
         lineChart.data = LineData(dataSets)
-        lineChart.xAxis.apply {
+        xAxis.apply {
             valueFormatter = IndexAxisValueFormatter(labels)
             position = XAxis.XAxisPosition.BOTTOM
             setDrawGridLines(false)
