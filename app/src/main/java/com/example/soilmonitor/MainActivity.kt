@@ -66,7 +66,7 @@ class MainActivity : AppCompatActivity() {
         }
         btnOther2.setOnClickListener {
             selectButton(btnOther2)
-            // TODO – implement screen
+            loadFragment(SurroundingFragment())  // updated
         }
         btnSettings.setOnClickListener {
             selectButton(btnSettings)

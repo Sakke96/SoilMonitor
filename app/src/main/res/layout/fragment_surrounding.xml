@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <com.github.mikephil.charting.charts.LineChart
+        android:id="@+id/surroundingChart"
+        android:layout_width="match_parent"
+        android:layout_height="300dp"
+        android:layout_marginBottom="16dp" />
+
+    <!-- Toggle switches for each variable -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <Switch
+            android:id="@+id/switchTemp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Temperature" />
+
+        <Switch
+            android:id="@+id/switchHumidity"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Humidity" />
+
+        <Switch
+            android:id="@+id/switchCO2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="CO₂" />
+
+        <Switch
+            android:id="@+id/switchPH"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="pH" />
+
+        <Switch
+            android:id="@+id/switchPPM"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="PPM" />
+
+        <Switch
+            android:id="@+id/switchTC"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="TC" />
+
+    </LinearLayout>
+
+</LinearLayout>

@@ -37,6 +37,7 @@ class SensorFragment : Fragment() {
     private lateinit var sensorSpinner: Spinner
     private lateinit var hideNightCheckBox: CheckBox
     private lateinit var hideSeparatorCheckBox: CheckBox
+    private lateinit var last24hCheckBox: CheckBox  // new
 
     // prefs + data
     private lateinit var prefs: SharedPreferences
@@ -76,6 +77,7 @@ class SensorFragment : Fragment() {
         sensorSpinner = view.findViewById(R.id.sensorSpinner)
         hideNightCheckBox = view.findViewById(R.id.hideNightCheckBox)
         hideSeparatorCheckBox = view.findViewById(R.id.hideSeparatorCheckBox)
+        last24hCheckBox = view.findViewById(R.id.last24hCheckBox)  // new
 
         // Build sensor lists from prefs
         val plantCount = prefs.getInt("plantCount", 4)
@@ -124,6 +126,9 @@ class SensorFragment : Fragment() {
         hideSeparatorCheckBox.setOnCheckedChangeListener { _, _ ->
             updateChart(sensorSpinner.selectedItemPosition)
         }
+        last24hCheckBox.setOnCheckedChangeListener { _, _ ->  // new
+            updateChart(sensorSpinner.selectedItemPosition)
+        }
 
         // start auto-refresh
         handler.post(refreshRunnable)
@@ -166,6 +171,7 @@ class SensorFragment : Fragment() {
         // 1. read checkboxes
         val hideNight      = hideNightCheckBox.isChecked
         val hideSeparators = hideSeparatorCheckBox.isChecked
+        val last24h        = last24hCheckBox.isChecked  // new
 
         // 2. prepare x-axis
         val labels  = mutableListOf<String>()
@@ -180,8 +186,16 @@ class SensorFragment : Fragment() {
         val visibleIdx = mutableListOf<Int>()
         var lastDate: LocalDate? = null
 
+        // compute cutoff
+        val now    = OffsetDateTime.now().plusHours(2)
+        val cutoff = now.minusHours(24)
+
         dataList.forEachIndexed { rawIdx, item ->
             val ts = OffsetDateTime.parse(item.getString("created_at")).plusHours(2)
+
+            // new: last 24h filter
+            if (last24h && ts.isBefore(cutoff)) return@forEachIndexed
+
             if (hideNight && ts.hour < 6) return@forEachIndexed
 
             val curDate = ts.toLocalDate()
@@ -221,7 +235,6 @@ class SensorFragment : Fragment() {
             lineChart.legend.apply {
                 isEnabled = true
                 form = Legend.LegendForm.LINE
-                verticalAlignment = Legend.LegendVerticalAlignment.BOTTOM
             }
             lineChart.setAutoScaleMinMaxEnabled(true)
         } else {

@@ -30,5 +30,13 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
         android:text="Hide day separators" />
+    <!-- … existing CheckBoxes … -->
+
+    <CheckBox
+        android:id="@+id/last24hCheckBox"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="24h only" />
 
 </LinearLayout>
