@@ -20,8 +20,6 @@ import org.json.JSONObject
 import java.io.IOException
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
-import kotlin.math.max
-import kotlin.math.min
 
 class SurroundingFragment : Fragment() {
     private lateinit var surroundingChart: LineChart
@@ -74,9 +72,7 @@ class SurroundingFragment : Fragment() {
         switchTC       = view.findViewById(R.id.switchTC)
 
         listOf(switchTemp, switchHumidity, switchCO2, switchPH, switchPPM, switchTC)
-            .forEach { sw ->
-                sw.setOnCheckedChangeListener { _, _ -> updateChart() }
-            }
+            .forEach { sw -> sw.setOnCheckedChangeListener { _, _ -> updateChart() } }
 
         handler.post(refreshRunnable)
     }
@@ -106,18 +102,17 @@ class SurroundingFragment : Fragment() {
     private fun updateChart() {
         if (dataList.isEmpty()) return
 
-        // clear previous
-        val xAxis    = surroundingChart.xAxis
-        xAxis.removeAllLimitLines()
-        xAxis.setDrawLimitLinesBehindData(true)
-        surroundingChart.axisLeft.removeAllLimitLines()
+        // ---------- x-axis labels built once (★ changed) ----------
+        val timeFmt = DateTimeFormatter.ofPattern("HH:mm")
+        val labels = dataList.map { item ->
+            OffsetDateTime.parse(item.getString("created_at"))
+                .plusHours(2)
+                .format(timeFmt)
+        }.toMutableList()
+        // ----------------------------------------------------------
 
-        // prepare data containers
-        val labels   = mutableListOf<String>()
-        val dataSets: MutableList<ILineDataSet> = mutableListOf()  // updated to ILineDataSet
-        val timeFmt  = DateTimeFormatter.ofPattern("HH:mm")
+        val dataSets = mutableListOf<ILineDataSet>()
 
-        // which sensors to include
         val toggles = listOf(
             switchTemp.isChecked,
             switchHumidity.isChecked,
@@ -127,17 +122,16 @@ class SurroundingFragment : Fragment() {
             switchTC.isChecked
         )
 
-        // build entries per sensor
+        // ---------- build entries with row index as x (★ changed) ----------
         sensorKeys.forEachIndexed { idx, key ->
             if (!toggles[idx]) return@forEachIndexed
-            val entries = mutableListOf<Entry>()
-            dataList.forEachIndexed { pos, item ->
-                val ts = OffsetDateTime.parse(item.getString("created_at")).plusHours(2)
-                if (idx == 0) labels += ts.format(timeFmt)
-                item.optDouble(key, Double.NaN).takeIf { !it.isNaN() }
-                    ?.let { Entry(labels.size - 1f, it.toFloat()) }
-                    ?.let { entries += it }
+
+            val entries = dataList.mapIndexedNotNull { pos, item ->
+                item.optDouble(key, Double.NaN)
+                    .takeIf { !it.isNaN() }
+                    ?.let { value -> Entry(pos.toFloat(), value.toFloat()) }
             }
+
             if (entries.isNotEmpty()) {
                 dataSets += LineDataSet(entries, sensorLabels[idx]).apply {
                     lineWidth = 2f
@@ -147,10 +141,10 @@ class SurroundingFragment : Fragment() {
                 }
             }
         }
+        // ------------------------------------------------------------------
 
-        // render
         surroundingChart.data = LineData(dataSets)
-        xAxis.apply {
+        surroundingChart.xAxis.apply {
             valueFormatter = IndexAxisValueFormatter(labels)
             position = XAxis.XAxisPosition.BOTTOM
             setDrawGridLines(false)
