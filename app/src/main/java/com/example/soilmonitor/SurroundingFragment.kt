@@ -12,6 +12,7 @@ import androidx.fragment.app.Fragment
 import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.components.LimitLine
 import com.github.mikephil.charting.components.XAxis
+import com.github.mikephil.charting.components.YAxis
 import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
 import com.github.mikephil.charting.data.LineDataSet
@@ -36,7 +37,7 @@ class SurroundingFragment : Fragment() {
     private lateinit var switchPPM: Switch
     private lateinit var switchTC: Switch
 
-    // new check-boxes
+    // check-boxes
     private lateinit var hideNightCheckBox: CheckBox
     private lateinit var hideSeparatorCheckBox: CheckBox
     private lateinit var last24hCheckBox: CheckBox
@@ -156,7 +157,8 @@ class SurroundingFragment : Fragment() {
         surroundingChart.axisLeft.removeAllLimitLines()
 
         /* ---- 1. collect readings per sensor with coarse filters ---- */
-        val readingsPerSensor = sensorKeys.associateWith { mutableListOf<Pair<OffsetDateTime, Float>>() }
+        val readingsPerSensor =
+            sensorKeys.associateWith { mutableListOf<Pair<OffsetDateTime, Float>>() }
 
         dataList.forEach { item ->
             val ts = OffsetDateTime.parse(item.getString("created_at")).plusHours(2)
@@ -198,7 +200,12 @@ class SurroundingFragment : Fragment() {
 
                 if (useSlot) {
                     if (!hideSeparators && slot.toLocalDate() != lastDateSeen) {
-                        xAxis.addLimitLine(LimitLine(pos.toFloat(), slot.toLocalDate().format(dateFmt)))
+                        xAxis.addLimitLine(
+                            LimitLine(
+                                pos.toFloat(),
+                                slot.toLocalDate().format(dateFmt)
+                            )
+                        )
                         lastDateSeen = slot.toLocalDate()
                     }
                     labels += slot.format(timeFmt)
@@ -216,7 +223,12 @@ class SurroundingFragment : Fragment() {
                 if (hideNight && ts.hour < 6)          return@forEach
 
                 if (!hideSeparators && ts.toLocalDate() != lastDateSeen) {
-                    xAxis.addLimitLine(LimitLine(pos.toFloat(), ts.toLocalDate().format(dateFmt)))
+                    xAxis.addLimitLine(
+                        LimitLine(
+                            pos.toFloat(),
+                            ts.toLocalDate().format(dateFmt)
+                        )
+                    )
                     lastDateSeen = ts.toLocalDate()
                 }
                 labels += ts.format(timeFmt)
@@ -227,6 +239,9 @@ class SurroundingFragment : Fragment() {
 
         /* ---- 4. build datasets ---- */
         val dataSets = mutableListOf<ILineDataSet>()
+        var activeCount = 0              // track visible series
+        var leftAxisColor   = android.graphics.Color.DKGRAY
+        var rightAxisColor  = android.graphics.Color.DKGRAY
 
         sensorKeys.forEachIndexed { idx, key ->
             if (!sensorToggles[idx]) return@forEachIndexed
@@ -253,12 +268,26 @@ class SurroundingFragment : Fragment() {
             }
 
             if (entries.isNotEmpty()) {
+                val color = sensorColors.getOrElse(idx) { android.graphics.Color.BLACK }
+
                 dataSets += LineDataSet(entries, sensorLabels[idx]).apply {
                     lineWidth = 2f
                     setDrawCircles(false)
                     setDrawValues(false)
-                    color = sensorColors.getOrElse(idx) { android.graphics.Color.BLACK }
+                    this.color = color
+
+                    // decide which axis to use
+                    axisDependency = if (activeCount == 1)
+                        YAxis.AxisDependency.RIGHT   // 2nd visible series
+                    else
+                        YAxis.AxisDependency.LEFT    // 1st + 3rd+
                 }
+
+                // remember colours for axes
+                if (activeCount == 0)  leftAxisColor  = color
+                if (activeCount == 1)  rightAxisColor = color
+
+                activeCount++
             }
         }
 
@@ -269,7 +298,21 @@ class SurroundingFragment : Fragment() {
             position = XAxis.XAxisPosition.BOTTOM
             setDrawGridLines(false)
         }
-        surroundingChart.axisRight.isEnabled = false
+
+        // colour the axes to match their series
+        surroundingChart.axisLeft.apply {
+            textColor = leftAxisColor
+            axisLineColor = leftAxisColor
+            setDrawGridLines(true)
+        }
+
+        surroundingChart.axisRight.apply {
+            isEnabled = activeCount >= 2
+            textColor = rightAxisColor
+            axisLineColor = rightAxisColor
+            setDrawGridLines(false)
+        }
+
         surroundingChart.setTouchEnabled(true)
         surroundingChart.setPinchZoom(true)
         surroundingChart.description.isEnabled = false
