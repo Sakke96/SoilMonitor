@@ -169,29 +169,26 @@ class SensorFragment : Fragment() {
            A)  “ALL SENSORS”  (index 0)
         -------------------------------------------------------------- */
         if (sensorSpinner.selectedItemPosition == 0) {
-            // ── Reset viewport & axis limits inherited from single-plant view ──
-            chart.fitScreen()            // clears any pinch-zoom or pan
+            chart.fitScreen()
             chart.setAutoScaleMinMaxEnabled(true)
             yAxis.resetAxisMinimum()
             yAxis.resetAxisMaximum()
-            /* Map key → list of (ts,value) after coarse filters */
-            val perSensor = sensorKeys.associateWith { mutableListOf<Pair<OffsetDateTime, Float>>() }
 
+            val perSensor = sensorKeys.associateWith { mutableListOf<Pair<OffsetDateTime, Float>>() }
             dataList.forEach { obj ->
                 val ts = OffsetDateTime.parse(obj.getString("created_at")).plusHours(2)
                 if (last24hOnly && ts.isBefore(cutoff)) return@forEach
                 if (hideNight && ts.hour < 6)          return@forEach
-
                 sensorKeys.forEach { k ->
                     val v = obj.optInt(k, -1)
                     if (v >= 0) perSensor[k]?.add(ts to v.toFloat())
                 }
             }
 
-            /* If bridge OFF: keep irregular spacing ------------------------- */
             if (!bridge) {
-                val labels   = mutableListOf<String>()
-                val rawIdx   = mutableListOf<Int>()
+                /* ---------- onregelmatige spacing (zoals voorheen) ---------- */
+                val labels = mutableListOf<String>()
+                val rawIdx = mutableListOf<Int>()
                 var lastDay: java.time.LocalDate? = null
 
                 dataList.forEachIndexed { i, obj ->
@@ -204,13 +201,15 @@ class SensorFragment : Fragment() {
                         lastDay = ts.toLocalDate()
                     }
                     labels += ts.format(tFmt)
-                    rawIdx += i
+                    rawIdx  += i
                 }
 
                 val sets = mutableListOf<ILineDataSet>()
                 sensorKeys.forEachIndexed { idx, key ->
                     val es = rawIdx.mapIndexedNotNull { pos, r ->
-                        dataList[r].optInt(key, -1).takeIf { it >= 0 }?.let { Entry(pos.toFloat(), it.toFloat()) }
+                        dataList[r].optInt(key, -1)
+                            .takeIf { it >= 0 }
+                            ?.let { Entry(pos.toFloat(), it.toFloat()) }
                     }
                     if (es.isNotEmpty()) {
                         sets += LineDataSet(es, sensorLabels[idx + 1]).apply {
@@ -229,12 +228,11 @@ class SensorFragment : Fragment() {
                 return
             }
 
-            /* Bridge ON: create global 10-min lattice ----------------------- */
-            val slotsAll = perSensor.values
-                .flatten()
+            /* ---------- bridge ON : 10-min raster + alleen echte punten ---------- */
+            val slotsAll = perSensor.values.flatten()
                 .map { it.first.withMinute(it.first.minute / 10 * 10).withSecond(0).withNano(0) }
-
             if (slotsAll.isEmpty()) return
+
             var slot = slotsAll.minOrNull()!!
             val lastSlot = slotsAll.maxOrNull()!!
             val slotList = mutableListOf<OffsetDateTime>()
@@ -248,7 +246,8 @@ class SensorFragment : Fragment() {
                         xAxis.addLimitLine(LimitLine(pos.toFloat(), slot.toLocalDate().format(dFmt)))
                         lastDay = slot.toLocalDate()
                     }
-                    slotList += slot; pos++
+                    slotList += slot
+                    pos++
                 }
                 slot = slot.plusMinutes(10)
             }
@@ -260,14 +259,9 @@ class SensorFragment : Fragment() {
                     { it.second }
                 )
 
-                var prev: Float? = null; var haveFirst = false
                 val es = mutableListOf<Entry>()
                 slotList.forEachIndexed { p, s ->
-                    val v = map[s] ?: if (haveFirst) prev else null
-                    if (v != null) {
-                        es += Entry(p.toFloat(), v)
-                        prev = v; haveFirst = true
-                    }
+                    map[s]?.let { es += Entry(p.toFloat(), it) }   // <-- alleen bestaande metingen
                 }
 
                 if (es.isNotEmpty()) {
@@ -319,8 +313,6 @@ class SensorFragment : Fragment() {
             var slot = slotMap.keys.minOrNull()!!
             val last = slotMap.keys.maxOrNull()!!
             var pos = 0
-            var prev: Float? = null
-            var haveFirst = false
             while (!slot.isAfter(last)) {
                 val keep = !(hideNight && slot.hour < 6) &&
                         !(last24hOnly && slot.isBefore(cutoff))
@@ -329,12 +321,9 @@ class SensorFragment : Fragment() {
                         xAxis.addLimitLine(LimitLine(pos.toFloat(), slot.toLocalDate().format(dFmt)))
                         lastDay = slot.toLocalDate()
                     }
-                    val v = slotMap[slot] ?: if (haveFirst) prev else null
-                    if (v != null) {
-                        labels += slot.format(tFmt)
-                        entries += Entry(pos.toFloat(), v)
-                        prev = v; haveFirst = true; pos++
-                    }
+                    labels += slot.format(tFmt)
+                    slotMap[slot]?.let { entries += Entry(pos.toFloat(), it) } // only real points
+                    pos++                                                      // pos telt ALTIJD door
                 }
                 slot = slot.plusMinutes(10)
             }
@@ -366,7 +355,7 @@ class SensorFragment : Fragment() {
         yAxis.axisMinimum = min(entries.minOf { it.y }, min(wet, dry) - span)
         yAxis.axisMaximum = max(entries.maxOf { it.y }, max(wet, dry) + span)
 
-        /* Trend-to-dry line */
+        /* Trend-to-dry lijn */
         if (showTrend && entries.size >= 2) {
             val sIdx = entries.indexOfLast { it.y <= wet }.let { if (it == -1) 0 else it }
             val start = entries[sIdx]; val end = entries.last()
@@ -384,7 +373,7 @@ class SensorFragment : Fragment() {
                     enableDashedLine(10f, 5f, 0f)
                     color = android.graphics.Color.GRAY
                 }
-                repeat(ceil(predX - entries.last().x).toInt()) { labels += "" }
+                repeat(ceil(predX - (labels.size - 1)).toInt()) { labels += "" }
                 val mins = (slotsToDry * 10).roundToLong()
                 val predicted = raw.last().first.plusMinutes(mins)
                 predictionTxt.text =
