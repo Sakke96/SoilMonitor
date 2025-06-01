@@ -62,7 +62,7 @@ class MainActivity : AppCompatActivity() {
         }
         btnOther1.setOnClickListener {
             selectButton(btnOther1)
-            // TODO – implement screen
+            loadFragment(PhotoFragment())
         }
         btnOther2.setOnClickListener {
             selectButton(btnOther2)
