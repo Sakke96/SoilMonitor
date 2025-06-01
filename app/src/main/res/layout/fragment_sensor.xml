@@ -17,12 +17,21 @@
         android:layout_height="300dp"
         android:layout_marginTop="8dp" />
 
+    <TextView
+        android:id="@+id/trendPredictionText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="#555555"
+        android:textStyle="italic"
+        android:layout_marginTop="4dp" />
+
     <CheckBox
         android:id="@+id/hideNightCheckBox"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
-        android:text="Hide 00:00 – 06:00" />
+        android:text="Hide 00:00 – 06:00"
+        android:checked="true" />
 
     <CheckBox
         android:id="@+id/hideSeparatorCheckBox"
@@ -30,13 +39,28 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
         android:text="Hide day separators" />
-    <!-- … existing CheckBoxes … -->
 
     <CheckBox
         android:id="@+id/last24hCheckBox"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:text="24h only" />
+        android:text="24 h only"
+        android:checked="true" />
+
+    <CheckBox
+        android:id="@+id/bridgeGapsCheckBox"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="Bridge missing 10-min gaps"
+        android:checked="true" />
+
+    <CheckBox
+        android:id="@+id/trendLineCheckBox"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="Show trend to dry" />
 
 </LinearLayout>

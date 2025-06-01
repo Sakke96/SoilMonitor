@@ -1,58 +1,95 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="16dp">
+    android:layout_height="match_parent">
 
-    <com.github.mikephil.charting.charts.LineChart
-        android:id="@+id/surroundingChart"
-        android:layout_width="match_parent"
-        android:layout_height="300dp"
-        android:layout_marginBottom="16dp" />
-
-    <!-- Toggle switches for each variable -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:padding="16dp">
 
-        <Switch
-            android:id="@+id/switchTemp"
+        <!-- main chart -->
+        <com.github.mikephil.charting.charts.LineChart
+            android:id="@+id/surroundingChart"
+            android:layout_width="match_parent"
+            android:layout_height="300dp"
+            android:layout_marginBottom="16dp" />
+
+        <!-- sensor switches -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <Switch
+                android:id="@+id/switchTemp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Temperature" />
+
+            <Switch
+                android:id="@+id/switchHumidity"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Humidity" />
+
+            <Switch
+                android:id="@+id/switchCO2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="CO₂" />
+
+            <Switch
+                android:id="@+id/switchPH"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="pH" />
+
+            <Switch
+                android:id="@+id/switchPPM"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="PPM" />
+
+            <Switch
+                android:id="@+id/switchTC"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="TC" />
+        </LinearLayout>
+
+        <!-- ✨ new options (default states match plant view) -->
+        <CheckBox
+            android:id="@+id/checkHideNight"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Temperature" />
+            android:layout_marginTop="12dp"
+            android:text="Hide 00:00 – 06:00"
+            android:checked="true" />
 
-        <Switch
-            android:id="@+id/switchHumidity"
+        <CheckBox
+            android:id="@+id/checkHideSeparator"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Humidity" />
+            android:layout_marginTop="4dp"
+            android:text="Hide day separators" />
 
-        <Switch
-            android:id="@+id/switchCO2"
+        <CheckBox
+            android:id="@+id/checkLast24h"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="CO₂" />
+            android:layout_marginTop="4dp"
+            android:text="24 h only"
+            android:checked="true" />
 
-        <Switch
-            android:id="@+id/switchPH"
+        <CheckBox
+            android:id="@+id/checkBridgeGaps"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="pH" />
-
-        <Switch
-            android:id="@+id/switchPPM"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="PPM" />
-
-        <Switch
-            android:id="@+id/switchTC"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="TC" />
+            android:layout_marginTop="4dp"
+            android:text="Bridge missing 10-min gaps"
+            android:checked="true" />
 
     </LinearLayout>
-
-</LinearLayout>
+</ScrollView>

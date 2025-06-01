@@ -5,290 +5,406 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.preference.PreferenceManager
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
-import android.widget.AdapterView
-import android.widget.ArrayAdapter
-import android.widget.CheckBox
-import android.widget.Spinner
+import android.view.*
+import android.widget.*
 import androidx.fragment.app.Fragment
 import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.components.Legend
 import com.github.mikephil.charting.components.LimitLine
-import com.github.mikephil.charting.components.XAxis
-import com.github.mikephil.charting.data.Entry
-import com.github.mikephil.charting.data.LineData
-import com.github.mikephil.charting.data.LineDataSet
+import com.github.mikephil.charting.data.*
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
 import com.github.mikephil.charting.interfaces.datasets.ILineDataSet
 import okhttp3.*
 import org.json.JSONObject
 import java.io.IOException
-import java.time.LocalDate
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
+import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.roundToLong
 
 class SensorFragment : Fragment() {
-    // UI
-    private lateinit var lineChart: LineChart
-    private lateinit var sensorSpinner: Spinner
-    private lateinit var hideNightCheckBox: CheckBox
-    private lateinit var hideSeparatorCheckBox: CheckBox
-    private lateinit var last24hCheckBox: CheckBox  // new
 
-    // prefs + data
+    /* ---------- UI ---------- */
+    private lateinit var chart: LineChart
+    private lateinit var sensorSpinner: Spinner
+    private lateinit var hideNightBox: CheckBox
+    private lateinit var hideSepBox: CheckBox
+    private lateinit var last24hBox: CheckBox
+    private lateinit var bridgeBox: CheckBox
+    private lateinit var trendBox: CheckBox
+    private lateinit var predictionTxt: TextView
+
+    /* ---------- prefs / raw data ---------- */
     private lateinit var prefs: SharedPreferences
     private var dataList: List<JSONObject> = emptyList()
 
-    // runtime lists
-    private lateinit var sensorKeys: List<String>
-    private lateinit var sensorLabels: List<String>
-    private lateinit var dryValues: List<Float>
-    private lateinit var wetValues: List<Float>
-    private val sensorColors = listOf(
+    /* ---------- static meta ---------- */
+    private lateinit var sensorKeys: List<String>   // sensor_u1 … sensor_uN
+    private lateinit var sensorLabels: List<String> // All Sensors, Plant 1, …
+    private lateinit var dryVals: List<Float>
+    private lateinit var wetVals: List<Float>
+
+    /** Fixed palette: Plant 1-4 = red, blue, green, magenta */
+    private val colours = listOf(
         android.graphics.Color.RED,
         android.graphics.Color.BLUE,
         android.graphics.Color.GREEN,
         android.graphics.Color.MAGENTA
     )
 
-    // auto-refresh
+    /* ---------- polling ---------- */
     private val handler = Handler(Looper.getMainLooper())
-    private val refreshRunnable = object : Runnable {
+    private val refresher = object : Runnable {
         override fun run() {
-            fetchSoilData()
+            fetch()
             handler.postDelayed(this, 60_000L)
         }
     }
 
-    override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View = inflater.inflate(R.layout.fragment_sensor, container, false)
+    /* ---------- lifecycle ---------- */
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
+    override fun onCreateView(i: LayoutInflater, c: ViewGroup?, b: Bundle?) =
+        i.inflate(R.layout.fragment_sensor, c, false)
 
-        prefs = PreferenceManager.getDefaultSharedPreferences(requireContext())
-        lineChart = view.findViewById(R.id.lineChart)
+    override fun onViewCreated(view: View, b: Bundle?) {
+        super.onViewCreated(view, b)
+
+        /* ---- bind ---- */
+        prefs         = PreferenceManager.getDefaultSharedPreferences(requireContext())
+        chart         = view.findViewById(R.id.lineChart)
         sensorSpinner = view.findViewById(R.id.sensorSpinner)
-        hideNightCheckBox = view.findViewById(R.id.hideNightCheckBox)
-        hideSeparatorCheckBox = view.findViewById(R.id.hideSeparatorCheckBox)
-        last24hCheckBox = view.findViewById(R.id.last24hCheckBox)  // new
+        hideNightBox  = view.findViewById(R.id.hideNightCheckBox)
+        hideSepBox    = view.findViewById(R.id.hideSeparatorCheckBox)
+        last24hBox    = view.findViewById(R.id.last24hCheckBox)
+        bridgeBox     = view.findViewById(R.id.bridgeGapsCheckBox)
+        trendBox      = view.findViewById(R.id.trendLineCheckBox)
+        predictionTxt = view.findViewById(R.id.trendPredictionText)
 
-        // Build sensor lists from prefs
-        val plantCount = prefs.getInt("plantCount", 4)
-        for (i in 1..plantCount) {
-            val dryKey = "plant_${i}_dry"
-            val wetKey = "plant_${i}_wet"
-            if (!prefs.contains(dryKey)) {
-                val defaultDry = when (i) {
-                    1 -> 372f; 2 -> 318f; 3 -> 359f; 4 -> 421f; else -> 0f
-                }
-                prefs.edit().putFloat(dryKey, defaultDry).apply()
-            }
-            if (!prefs.contains(wetKey)) {
-                val defaultWet = when (i) {
-                    1 -> 329f; 2 -> 367f; 3 -> 385f; 4 -> 408f; else -> 100f
-                }
-                prefs.edit().putFloat(wetKey, defaultWet).apply()
-            }
-        }
-        sensorKeys   = List(plantCount) { i -> "sensor_u$i" }
-        sensorLabels = listOf("All Sensors") + List(plantCount) { i -> "Plant ${i+1}" }
-        dryValues    = List(plantCount) { i -> prefs.getFloat("plant_${i+1}_dry", 0f) }
-        wetValues    = List(plantCount) { i -> prefs.getFloat("plant_${i+1}_wet", 100f) }
+        /* ---- sensor meta ---- */
+        val plants = prefs.getInt("plantCount", 4)
+        sensorKeys   = List(plants) { i -> "sensor_u${i}" }
+        sensorLabels = listOf("All Sensors") + List(plants) { i -> "Plant ${i + 1}" }
+        dryVals      = List(plants) { i -> prefs.getFloat("plant_${i + 1}_dry", 400f) }
+        wetVals      = List(plants) { i -> prefs.getFloat("plant_${i + 1}_wet", 350f) }
 
-        // Spinner setup
+        /* ---- spinner ---- */
         ArrayAdapter(
             requireContext(),
             android.R.layout.simple_spinner_item,
             sensorLabels
-        ).also { adapter ->
-            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-            sensorSpinner.adapter = adapter
+        ).also {
+            it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+            sensorSpinner.adapter = it
         }
         sensorSpinner.setSelection(0, false)
         sensorSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>, view: View?, pos: Int, id: Long) {
-                updateChart(pos)
-            }
-            override fun onNothingSelected(parent: AdapterView<*>) {}
+            override fun onItemSelected(p: AdapterView<*>, v: View?, pos: Int, id: Long) = redraw()
+            override fun onNothingSelected(p: AdapterView<*>) {}
         }
 
-        // Checkbox listeners
-        hideNightCheckBox.setOnCheckedChangeListener { _, _ ->
-            updateChart(sensorSpinner.selectedItemPosition)
-        }
-        hideSeparatorCheckBox.setOnCheckedChangeListener { _, _ ->
-            updateChart(sensorSpinner.selectedItemPosition)
-        }
-        last24hCheckBox.setOnCheckedChangeListener { _, _ ->  // new
-            updateChart(sensorSpinner.selectedItemPosition)
-        }
+        /* ---- toggles ---- */
+        val re = CompoundButton.OnCheckedChangeListener { _, _ -> redraw() }
+        hideNightBox.setOnCheckedChangeListener(re)
+        hideSepBox.setOnCheckedChangeListener(re)
+        last24hBox.setOnCheckedChangeListener(re)
+        bridgeBox.setOnCheckedChangeListener(re)
+        trendBox.setOnCheckedChangeListener(re)
 
-        // start auto-refresh
-        handler.post(refreshRunnable)
+        fetch()
+        handler.post(refresher)
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
-        handler.removeCallbacks(refreshRunnable)
+        handler.removeCallbacks(refresher)
     }
 
-    private fun fetchSoilData() {
+    /* ---------- network ---------- */
+
+    private fun fetch() {
         OkHttpClient().newCall(
             Request.Builder()
                 .url("https://g2f12813f9dfc61-garden.adb.eu-paris-1.oraclecloudapps.com/ords/admin/log/log")
                 .build()
         ).enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) { /* ignore */ }
-            override fun onResponse(call: Call, response: Response) {
-                response.body?.string()?.let { body ->
-                    val jsonArray = JSONObject(body).getJSONArray("items")
-                    dataList = List(jsonArray.length()) { i -> jsonArray.getJSONObject(i) }
-                    activity?.runOnUiThread {
-                        if (isAdded) updateChart(sensorSpinner.selectedItemPosition)
-                    }
+            override fun onFailure(call: Call, e: IOException) {}
+            override fun onResponse(call: Call, r: Response) {
+                r.body?.string()?.let {
+                    val arr = JSONObject(it).getJSONArray("items")
+                    dataList = List(arr.length()) { i -> arr.getJSONObject(i) }
+                    activity?.runOnUiThread { if (isAdded) redraw() }
                 }
             }
         })
     }
 
-    private fun updateChart(selectionIndex: Int) {
+    /* ======================================================================
+       MAIN DRAW
+    ======================================================================= */
+    private fun redraw() {
         if (dataList.isEmpty()) return
 
-        // 0. CLEAR previous state
-        val leftAxis = lineChart.axisLeft
-        leftAxis.removeAllLimitLines()
-        leftAxis.resetAxisMinimum()
-        leftAxis.resetAxisMaximum()
-        lineChart.marker = null
+        /* ---- read toggles ---- */
+        val hideNight   = hideNightBox.isChecked
+        val hideSep     = hideSepBox.isChecked
+        val last24hOnly = last24hBox.isChecked
+        val bridge      = bridgeBox.isChecked
+        val showTrend   = trendBox.isChecked && sensorSpinner.selectedItemPosition != 0
 
-        // 1. read checkboxes
-        val hideNight      = hideNightCheckBox.isChecked
-        val hideSeparators = hideSeparatorCheckBox.isChecked
-        val last24h        = last24hCheckBox.isChecked  // new
-
-        // 2. prepare x-axis
-        val labels  = mutableListOf<String>()
-        val xAxis   = lineChart.xAxis
-        val timeFmt = DateTimeFormatter.ofPattern("HH:mm")
-        val dateFmt = DateTimeFormatter.ofPattern("dd MMM")
-
-        xAxis.removeAllLimitLines()
-        xAxis.setDrawLimitLinesBehindData(true)
-
-        // 3. filter & optionally add day lines
-        val visibleIdx = mutableListOf<Int>()
-        var lastDate: LocalDate? = null
-
-        // compute cutoff
+        /* ---- helpers ---- */
         val now    = OffsetDateTime.now().plusHours(2)
         val cutoff = now.minusHours(24)
+        val tFmt   = DateTimeFormatter.ofPattern("HH:mm")
+        val dFmt   = DateTimeFormatter.ofPattern("dd MMM")
 
-        dataList.forEachIndexed { rawIdx, item ->
-            val ts = OffsetDateTime.parse(item.getString("created_at")).plusHours(2)
+        val xAxis = chart.xAxis
+        val yAxis = chart.axisLeft
+        xAxis.removeAllLimitLines()
+        yAxis.removeAllLimitLines()
+        predictionTxt.text = ""
 
-            // new: last 24h filter
-            if (last24h && ts.isBefore(cutoff)) return@forEachIndexed
+        /* --------------------------------------------------------------
+           A)  “ALL SENSORS”  (index 0)
+        -------------------------------------------------------------- */
+        if (sensorSpinner.selectedItemPosition == 0) {
+            // ── Reset viewport & axis limits inherited from single-plant view ──
+            chart.fitScreen()            // clears any pinch-zoom or pan
+            chart.setAutoScaleMinMaxEnabled(true)
+            yAxis.resetAxisMinimum()
+            yAxis.resetAxisMaximum()
+            /* Map key → list of (ts,value) after coarse filters */
+            val perSensor = sensorKeys.associateWith { mutableListOf<Pair<OffsetDateTime, Float>>() }
 
-            if (hideNight && ts.hour < 6) return@forEachIndexed
+            dataList.forEach { obj ->
+                val ts = OffsetDateTime.parse(obj.getString("created_at")).plusHours(2)
+                if (last24hOnly && ts.isBefore(cutoff)) return@forEach
+                if (hideNight && ts.hour < 6)          return@forEach
 
-            val curDate = ts.toLocalDate()
-            if (!hideSeparators && curDate != lastDate) {
-                val ll = LimitLine(visibleIdx.size.toFloat(), curDate.format(dateFmt)).apply {
-                    lineWidth = 1f
-                    labelPosition = LimitLine.LimitLabelPosition.RIGHT_TOP
-                    textSize = 10f
+                sensorKeys.forEach { k ->
+                    val v = obj.optInt(k, -1)
+                    if (v >= 0) perSensor[k]?.add(ts to v.toFloat())
                 }
-                xAxis.addLimitLine(ll)
-                lastDate = curDate
             }
 
-            labels += ts.format(timeFmt)
-            visibleIdx += rawIdx
-        }
+            /* If bridge OFF: keep irregular spacing ------------------------- */
+            if (!bridge) {
+                val labels   = mutableListOf<String>()
+                val rawIdx   = mutableListOf<Int>()
+                var lastDay: java.time.LocalDate? = null
 
-        // 4. build data sets
-        val dataSets = mutableListOf<ILineDataSet>()
-        if (selectionIndex == 0) {
-            // ALL SENSORS
-            sensorKeys.forEachIndexed { idx, key ->
-                val entries = visibleIdx.mapIndexedNotNull { pos, rawIdx ->
-                    dataList[rawIdx].optInt(key, -1)
-                        .takeIf { it >= 0 }
-                        ?.let { Entry(pos.toFloat(), it.toFloat()) }
+                dataList.forEachIndexed { i, obj ->
+                    val ts = OffsetDateTime.parse(obj.getString("created_at")).plusHours(2)
+                    if (last24hOnly && ts.isBefore(cutoff)) return@forEachIndexed
+                    if (hideNight && ts.hour < 6)          return@forEachIndexed
+
+                    if (!hideSep && ts.toLocalDate() != lastDay) {
+                        xAxis.addLimitLine(LimitLine(labels.size.toFloat(), ts.toLocalDate().format(dFmt)))
+                        lastDay = ts.toLocalDate()
+                    }
+                    labels += ts.format(tFmt)
+                    rawIdx += i
                 }
-                if (entries.isNotEmpty()) {
-                    dataSets += LineDataSet(entries, sensorLabels[idx+1]).apply {
+
+                val sets = mutableListOf<ILineDataSet>()
+                sensorKeys.forEachIndexed { idx, key ->
+                    val es = rawIdx.mapIndexedNotNull { pos, r ->
+                        dataList[r].optInt(key, -1).takeIf { it >= 0 }?.let { Entry(pos.toFloat(), it.toFloat()) }
+                    }
+                    if (es.isNotEmpty()) {
+                        sets += LineDataSet(es, sensorLabels[idx + 1]).apply {
+                            lineWidth = 2f
+                            setDrawCircles(false)
+                            setDrawValues(false)
+                            color = colours.getOrElse(idx) { android.graphics.Color.BLACK }
+                        }
+                    }
+                }
+
+                chart.legend.apply { isEnabled = true; form = Legend.LegendForm.LINE }
+                chart.data = LineData(sets)
+                xAxis.valueFormatter = IndexAxisValueFormatter(labels)
+                finishChart()
+                return
+            }
+
+            /* Bridge ON: create global 10-min lattice ----------------------- */
+            val slotsAll = perSensor.values
+                .flatten()
+                .map { it.first.withMinute(it.first.minute / 10 * 10).withSecond(0).withNano(0) }
+
+            if (slotsAll.isEmpty()) return
+            var slot = slotsAll.minOrNull()!!
+            val lastSlot = slotsAll.maxOrNull()!!
+            val slotList = mutableListOf<OffsetDateTime>()
+            var pos = 0
+            var lastDay: java.time.LocalDate? = null
+            while (!slot.isAfter(lastSlot)) {
+                val keep = !(hideNight && slot.hour < 6) &&
+                        !(last24hOnly && slot.isBefore(cutoff))
+                if (keep) {
+                    if (!hideSep && slot.toLocalDate() != lastDay) {
+                        xAxis.addLimitLine(LimitLine(pos.toFloat(), slot.toLocalDate().format(dFmt)))
+                        lastDay = slot.toLocalDate()
+                    }
+                    slotList += slot; pos++
+                }
+                slot = slot.plusMinutes(10)
+            }
+
+            val dataSets = mutableListOf<ILineDataSet>()
+            sensorKeys.forEachIndexed { idx, key ->
+                val map = perSensor[key]!!.associateBy(
+                    { it.first.withMinute(it.first.minute / 10 * 10).withSecond(0).withNano(0) },
+                    { it.second }
+                )
+
+                var prev: Float? = null; var haveFirst = false
+                val es = mutableListOf<Entry>()
+                slotList.forEachIndexed { p, s ->
+                    val v = map[s] ?: if (haveFirst) prev else null
+                    if (v != null) {
+                        es += Entry(p.toFloat(), v)
+                        prev = v; haveFirst = true
+                    }
+                }
+
+                if (es.isNotEmpty()) {
+                    dataSets += LineDataSet(es, sensorLabels[idx + 1]).apply {
                         lineWidth = 2f
                         setDrawCircles(false)
                         setDrawValues(false)
-                        color = sensorColors.getOrElse(idx) { android.graphics.Color.BLACK }
+                        color = colours.getOrElse(idx) { android.graphics.Color.BLACK }
                     }
                 }
             }
-            lineChart.legend.apply {
-                isEnabled = true
-                form = Legend.LegendForm.LINE
+
+            chart.legend.apply { isEnabled = true; form = Legend.LegendForm.LINE }
+            chart.data = LineData(dataSets)
+            xAxis.valueFormatter = IndexAxisValueFormatter(slotList.map { it.format(tFmt) })
+            finishChart()
+            return
+        }
+
+        /* --------------------------------------------------------------
+           B)  SINGLE PLANT
+        -------------------------------------------------------------- */
+        val idx = sensorSpinner.selectedItemPosition - 1
+        val key = sensorKeys[idx]
+        val wet = wetVals[idx]
+        val dry = dryVals[idx]
+
+        val raw = dataList.mapNotNull { obj ->
+            val ts = OffsetDateTime.parse(obj.getString("created_at")).plusHours(2)
+            if (last24hOnly && ts.isBefore(cutoff)) return@mapNotNull null
+            if (hideNight && ts.hour < 6)          return@mapNotNull null
+            val v = obj.optInt(key, -1).takeIf { it >= 0 } ?: return@mapNotNull null
+            ts to v.toFloat()
+        }.sortedBy { it.first }
+
+        if (raw.isEmpty()) return
+
+        val labels = mutableListOf<String>()
+        val entries = mutableListOf<Entry>()
+        var lastDay: java.time.LocalDate? = null
+
+        if (bridge) {
+            val slotMap = mutableMapOf<OffsetDateTime, Float>()
+            raw.forEach { (ts, v) ->
+                val s = ts.withMinute(ts.minute / 10 * 10).withSecond(0).withNano(0)
+                slotMap[s] = v
             }
-            lineChart.setAutoScaleMinMaxEnabled(true)
+
+            var slot = slotMap.keys.minOrNull()!!
+            val last = slotMap.keys.maxOrNull()!!
+            var pos = 0
+            var prev: Float? = null
+            var haveFirst = false
+            while (!slot.isAfter(last)) {
+                val keep = !(hideNight && slot.hour < 6) &&
+                        !(last24hOnly && slot.isBefore(cutoff))
+                if (keep) {
+                    if (!hideSep && slot.toLocalDate() != lastDay) {
+                        xAxis.addLimitLine(LimitLine(pos.toFloat(), slot.toLocalDate().format(dFmt)))
+                        lastDay = slot.toLocalDate()
+                    }
+                    val v = slotMap[slot] ?: if (haveFirst) prev else null
+                    if (v != null) {
+                        labels += slot.format(tFmt)
+                        entries += Entry(pos.toFloat(), v)
+                        prev = v; haveFirst = true; pos++
+                    }
+                }
+                slot = slot.plusMinutes(10)
+            }
         } else {
-            // SINGLE SENSOR
-            val idx = selectionIndex - 1
-            val key = sensorKeys[idx]
-            val entries = visibleIdx.mapIndexedNotNull { pos, rawIdx ->
-                dataList[rawIdx].optInt(key, -1)
-                    .takeIf { it >= 0 }
-                    ?.let { Entry(pos.toFloat(), it.toFloat()) }
+            var pos = 0
+            raw.forEach { (ts, v) ->
+                if (!hideSep && ts.toLocalDate() != lastDay) {
+                    xAxis.addLimitLine(LimitLine(pos.toFloat(), ts.toLocalDate().format(dFmt)))
+                    lastDay = ts.toLocalDate()
+                }
+                labels += ts.format(tFmt)
+                entries += Entry(pos.toFloat(), v)
+                pos++
             }
-            dataSets += LineDataSet(entries, sensorLabels[selectionIndex]).apply {
-                lineWidth = 2f
-                setDrawCircles(false)
-                setDrawValues(false)
-                color = sensorColors.getOrElse(idx) { android.graphics.Color.BLACK }
-            }
-            // wet/dry bands
-            leftAxis.apply {
-                addLimitLine(LimitLine(dryValues[idx], "Dry"))
-                addLimitLine(LimitLine(wetValues[idx], "Wet"))
-            }
-            // manual Y bounds
-            val minRange = min(wetValues[idx], dryValues[idx])
-            val maxRange = max(wetValues[idx], dryValues[idx])
-            val span     = maxRange - minRange
-            var axisMin  = minRange
-            var axisMax  = maxRange
-            if (entries.isNotEmpty()) {
-                val dataMin = entries.minOf { it.y }
-                val dataMax = entries.maxOf { it.y }
-                if (dataMin < minRange) axisMin = max(dataMin, minRange - span)
-                if (dataMax > maxRange) axisMax = min(dataMax, maxRange + span)
-            }
-            leftAxis.axisMinimum = axisMin
-            leftAxis.axisMaximum = axisMax
-            lineChart.setAutoScaleMinMaxEnabled(false)
-
-            lineChart.marker = CustomMarkerView(requireContext()).also { it.chartView = lineChart }
-            lineChart.legend.isEnabled = false
         }
 
-        // 5. final chart draw
-        lineChart.data = LineData(dataSets)
-        xAxis.apply {
-            valueFormatter = IndexAxisValueFormatter(labels)
-            position = XAxis.XAxisPosition.BOTTOM
-            setDrawGridLines(false)
+        val dataSets = mutableListOf<ILineDataSet>()
+        dataSets += LineDataSet(entries, sensorLabels[idx + 1]).apply {
+            lineWidth = 2f
+            setDrawCircles(false)
+            setDrawValues(false)
+            color = colours.getOrElse(idx) { android.graphics.Color.BLACK }
         }
-        lineChart.axisRight.isEnabled = false
-        lineChart.setTouchEnabled(true)
-        lineChart.setPinchZoom(true)
-        lineChart.description.isEnabled = false
-        lineChart.animateX(1_000)
-        lineChart.invalidate()
+
+        /* wet / dry bands */
+        yAxis.addLimitLine(LimitLine(dry, "Dry"))
+        yAxis.addLimitLine(LimitLine(wet, "Wet"))
+        val span = max(wet, dry) - min(wet, dry)
+        yAxis.axisMinimum = min(entries.minOf { it.y }, min(wet, dry) - span)
+        yAxis.axisMaximum = max(entries.maxOf { it.y }, max(wet, dry) + span)
+
+        /* Trend-to-dry line */
+        if (showTrend && entries.size >= 2) {
+            val sIdx = entries.indexOfLast { it.y <= wet }.let { if (it == -1) 0 else it }
+            val start = entries[sIdx]; val end = entries.last()
+            val dx = end.x - start.x; val dy = end.y - start.y
+            val slope = if (dx != 0f) dy / dx else 0f
+            if (slope > 0 && end.y < dry) {
+                val slotsToDry = (dry - end.y) / slope
+                val predX = end.x + slotsToDry
+                dataSets += LineDataSet(
+                    listOf(Entry(start.x, start.y), Entry(predX, dry)), "Trend"
+                ).apply {
+                    lineWidth = 1.5f
+                    setDrawCircles(false)
+                    setDrawValues(false)
+                    enableDashedLine(10f, 5f, 0f)
+                    color = android.graphics.Color.GRAY
+                }
+                repeat(ceil(predX - entries.last().x).toInt()) { labels += "" }
+                val mins = (slotsToDry * 10).roundToLong()
+                val predicted = raw.last().first.plusMinutes(mins)
+                predictionTxt.text =
+                    "Expected dry hit: ${predicted.format(DateTimeFormatter.ofPattern("dd MMM HH:mm"))}"
+            }
+        }
+
+        chart.legend.isEnabled = false
+        chart.data = LineData(dataSets)
+        xAxis.valueFormatter = IndexAxisValueFormatter(labels)
+        finishChart()
+    }
+
+    /* ---------- misc ---------- */
+    private fun finishChart() {
+        chart.axisRight.isEnabled = false
+        chart.setTouchEnabled(true)
+        chart.setPinchZoom(true)
+        chart.description.isEnabled = false
+        chart.animateX(600)
+        chart.invalidate()
     }
 }

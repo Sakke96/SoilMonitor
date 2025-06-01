@@ -6,9 +6,11 @@ import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.CheckBox
 import android.widget.Switch
 import androidx.fragment.app.Fragment
 import com.github.mikephil.charting.charts.LineChart
+import com.github.mikephil.charting.components.LimitLine
 import com.github.mikephil.charting.components.XAxis
 import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
@@ -20,8 +22,12 @@ import org.json.JSONObject
 import java.io.IOException
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
+import kotlin.math.ceil
+import kotlin.math.roundToLong
 
 class SurroundingFragment : Fragment() {
+
+    /* ---------- UI ---------- */
     private lateinit var surroundingChart: LineChart
     private lateinit var switchTemp: Switch
     private lateinit var switchHumidity: Switch
@@ -30,6 +36,13 @@ class SurroundingFragment : Fragment() {
     private lateinit var switchPPM: Switch
     private lateinit var switchTC: Switch
 
+    // new check-boxes
+    private lateinit var hideNightCheckBox: CheckBox
+    private lateinit var hideSeparatorCheckBox: CheckBox
+    private lateinit var last24hCheckBox: CheckBox
+    private lateinit var bridgeGapsCheckBox: CheckBox
+
+    /* ---------- data ---------- */
     private var dataList: List<JSONObject> = emptyList()
     private val handler = Handler(Looper.getMainLooper())
     private val refreshRunnable = object : Runnable {
@@ -39,7 +52,7 @@ class SurroundingFragment : Fragment() {
         }
     }
 
-    // keys, labels, and colors for each metric
+    /* ---------- meta ---------- */
     private val sensorKeys = listOf(
         "sensor_temp", "sensor_hu", "sensor_co2",
         "sensor_ph", "sensor_ppm", "sensor_tc"
@@ -56,6 +69,8 @@ class SurroundingFragment : Fragment() {
         android.graphics.Color.YELLOW
     )
 
+    /* ---------- lifecycle ---------- */
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ) = inflater.inflate(R.layout.fragment_surrounding, container, false)
@@ -63,7 +78,9 @@ class SurroundingFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        /* ---- bind views ---- */
         surroundingChart = view.findViewById(R.id.surroundingChart)
+
         switchTemp     = view.findViewById(R.id.switchTemp)
         switchHumidity = view.findViewById(R.id.switchHumidity)
         switchCO2      = view.findViewById(R.id.switchCO2)
@@ -71,9 +88,24 @@ class SurroundingFragment : Fragment() {
         switchPPM      = view.findViewById(R.id.switchPPM)
         switchTC       = view.findViewById(R.id.switchTC)
 
-        listOf(switchTemp, switchHumidity, switchCO2, switchPH, switchPPM, switchTC)
-            .forEach { sw -> sw.setOnCheckedChangeListener { _, _ -> updateChart() } }
+        hideNightCheckBox     = view.findViewById(R.id.checkHideNight)
+        hideSeparatorCheckBox = view.findViewById(R.id.checkHideSeparator)
+        last24hCheckBox       = view.findViewById(R.id.checkLast24h)
+        bridgeGapsCheckBox    = view.findViewById(R.id.checkBridgeGaps)
 
+        /* ---- listeners ---- */
+        val rerender: (View, Boolean) -> Unit = { _, _ -> updateChart() }
+        listOf(
+            switchTemp, switchHumidity, switchCO2, switchPH, switchPPM, switchTC,
+            hideNightCheckBox, hideSeparatorCheckBox, last24hCheckBox, bridgeGapsCheckBox
+        ).forEach { v ->
+            when (v) {
+                is Switch   -> v.setOnCheckedChangeListener(rerender)
+                is CheckBox -> v.setOnCheckedChangeListener(rerender)
+            }
+        }
+
+        /* ---- start polling ---- */
         handler.post(refreshRunnable)
     }
 
@@ -81,6 +113,8 @@ class SurroundingFragment : Fragment() {
         super.onDestroyView()
         handler.removeCallbacks(refreshRunnable)
     }
+
+    /* ---------- network ---------- */
 
     private fun fetchSurroundingData() {
         OkHttpClient().newCall(
@@ -91,45 +125,131 @@ class SurroundingFragment : Fragment() {
             override fun onFailure(call: Call, e: IOException) { /* ignore */ }
             override fun onResponse(call: Call, response: Response) {
                 response.body?.string()?.let { body ->
-                    val jsonArray = JSONObject(body).getJSONArray("items")
-                    dataList = List(jsonArray.length()) { i -> jsonArray.getJSONObject(i) }
+                    val jArr = JSONObject(body).getJSONArray("items")
+                    dataList = List(jArr.length()) { i -> jArr.getJSONObject(i) }
                     activity?.runOnUiThread { if (isAdded) updateChart() }
                 }
             }
         })
     }
 
+    /* ---------- chart ---------- */
+
     private fun updateChart() {
         if (dataList.isEmpty()) return
 
-        // ---------- x-axis labels built once (★ changed) ----------
+        /* ---- read options ---- */
+        val hideNight      = hideNightCheckBox.isChecked
+        val hideSeparators = hideSeparatorCheckBox.isChecked
+        val last24hOnly    = last24hCheckBox.isChecked
+        val bridgeGaps     = bridgeGapsCheckBox.isChecked
+
+        val now    = OffsetDateTime.now().plusHours(2)
+        val cutoff = now.minusHours(24)
+
         val timeFmt = DateTimeFormatter.ofPattern("HH:mm")
-        val labels = dataList.map { item ->
-            OffsetDateTime.parse(item.getString("created_at"))
-                .plusHours(2)
-                .format(timeFmt)
-        }.toMutableList()
-        // ----------------------------------------------------------
+        val dateFmt = DateTimeFormatter.ofPattern("dd MMM")
 
-        val dataSets = mutableListOf<ILineDataSet>()
+        /* ---- clear old extras ---- */
+        val xAxis = surroundingChart.xAxis
+        xAxis.removeAllLimitLines()
+        surroundingChart.axisLeft.removeAllLimitLines()
 
-        val toggles = listOf(
-            switchTemp.isChecked,
-            switchHumidity.isChecked,
-            switchCO2.isChecked,
-            switchPH.isChecked,
-            switchPPM.isChecked,
-            switchTC.isChecked
+        /* ---- 1. collect readings per sensor with coarse filters ---- */
+        val readingsPerSensor = sensorKeys.associateWith { mutableListOf<Pair<OffsetDateTime, Float>>() }
+
+        dataList.forEach { item ->
+            val ts = OffsetDateTime.parse(item.getString("created_at")).plusHours(2)
+            if (last24hOnly && ts.isBefore(cutoff)) return@forEach
+            if (hideNight && ts.hour < 6)          return@forEach
+
+            sensorKeys.forEach { key ->
+                val v = item.optDouble(key, Double.NaN)
+                if (!v.isNaN()) readingsPerSensor[key]?.add(ts to v.toFloat())
+            }
+        }
+
+        /* ---- 2. determine active sensors ---- */
+        val sensorToggles = listOf(
+            switchTemp.isChecked, switchHumidity.isChecked, switchCO2.isChecked,
+            switchPH.isChecked, switchPPM.isChecked, switchTC.isChecked
         )
 
-        // ---------- build entries with row index as x (★ changed) ----------
-        sensorKeys.forEachIndexed { idx, key ->
-            if (!toggles[idx]) return@forEachIndexed
+        /* ---- 3. build x-axis labels & slot list ---- */
+        val labels = mutableListOf<String>()
+        val slotList = mutableListOf<OffsetDateTime>()
+        var lastDateSeen: java.time.LocalDate? = null
 
-            val entries = dataList.mapIndexedNotNull { pos, item ->
-                item.optDouble(key, Double.NaN)
-                    .takeIf { !it.isNaN() }
-                    ?.let { value -> Entry(pos.toFloat(), value.toFloat()) }
+        if (bridgeGaps) {
+            /* -- find first & last timestamp among ALL readings -- */
+            val allTs = readingsPerSensor.values.flatten().map { it.first }
+            if (allTs.isEmpty()) return
+            var slot = allTs.minOrNull()!!
+                .withMinute((allTs.minOrNull()!!.minute / 10) * 10)
+                .withSecond(0).withNano(0)
+            val lastSlot = allTs.maxOrNull()!!
+                .withMinute((allTs.maxOrNull()!!.minute / 10) * 10)
+                .withSecond(0).withNano(0)
+
+            var pos = 0
+            while (!slot.isAfter(lastSlot)) {
+                val useSlot = !(hideNight && slot.hour < 6) &&
+                        !(last24hOnly && slot.isBefore(cutoff))
+
+                if (useSlot) {
+                    if (!hideSeparators && slot.toLocalDate() != lastDateSeen) {
+                        xAxis.addLimitLine(LimitLine(pos.toFloat(), slot.toLocalDate().format(dateFmt)))
+                        lastDateSeen = slot.toLocalDate()
+                    }
+                    labels += slot.format(timeFmt)
+                    slotList += slot
+                    pos++
+                }
+                slot = slot.plusMinutes(10)
+            }
+        } else {
+            /* original unequal spacing */
+            var pos = 0
+            dataList.forEach { item ->
+                val ts = OffsetDateTime.parse(item.getString("created_at")).plusHours(2)
+                if (last24hOnly && ts.isBefore(cutoff)) return@forEach
+                if (hideNight && ts.hour < 6)          return@forEach
+
+                if (!hideSeparators && ts.toLocalDate() != lastDateSeen) {
+                    xAxis.addLimitLine(LimitLine(pos.toFloat(), ts.toLocalDate().format(dateFmt)))
+                    lastDateSeen = ts.toLocalDate()
+                }
+                labels += ts.format(timeFmt)
+                slotList += ts                     // keep real timestamps for mapping
+                pos++
+            }
+        }
+
+        /* ---- 4. build datasets ---- */
+        val dataSets = mutableListOf<ILineDataSet>()
+
+        sensorKeys.forEachIndexed { idx, key ->
+            if (!sensorToggles[idx]) return@forEachIndexed
+
+            val entries = mutableListOf<Entry>()
+            val slotToVal = mutableMapOf<OffsetDateTime, Float>()
+            readingsPerSensor[key]?.forEach { (ts, v) ->
+                val slot = if (bridgeGaps) {
+                    ts.withMinute((ts.minute / 10) * 10).withSecond(0).withNano(0)
+                } else ts
+                slotToVal[slot] = v                       // keep latest per slot
+            }
+
+            var prevVal: Float? = null
+            var haveFirst = false
+
+            slotList.forEachIndexed { pos, slot ->
+                val v = slotToVal[slot] ?: if (bridgeGaps && haveFirst) prevVal else null
+                if (v != null) {
+                    entries += Entry(pos.toFloat(), v)
+                    prevVal = v
+                    haveFirst = true
+                }
             }
 
             if (entries.isNotEmpty()) {
@@ -141,8 +261,8 @@ class SurroundingFragment : Fragment() {
                 }
             }
         }
-        // ------------------------------------------------------------------
 
+        /* ---- 5. draw ---- */
         surroundingChart.data = LineData(dataSets)
         surroundingChart.xAxis.apply {
             valueFormatter = IndexAxisValueFormatter(labels)
@@ -153,7 +273,7 @@ class SurroundingFragment : Fragment() {
         surroundingChart.setTouchEnabled(true)
         surroundingChart.setPinchZoom(true)
         surroundingChart.description.isEnabled = false
-        surroundingChart.animateX(1_000)
+        surroundingChart.animateX(800)
         surroundingChart.invalidate()
     }
 }
