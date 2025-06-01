@@ -30,17 +30,32 @@
             android:layout_gravity="center"
             android:elevation="4dp" />
 
-        <TextView
-            android:id="@+id/plant1Label"
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Plant 1"
-            android:textStyle="bold"
-            android:textSize="14sp"
-            android:textColor="@android:color/black"
             android:layout_gravity="top|start"
-            android:padding="4dp"
-            android:elevation="6dp" />
+            android:orientation="vertical"
+            android:padding="4dp">
+
+            <TextView
+                android:id="@+id/plant1Label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Plant 1"
+                android:textStyle="bold"
+                android:textSize="14sp"
+                android:textColor="@android:color/black"
+                android:elevation="6dp" />
+
+            <TextView
+                android:id="@+id/plant1DryHit"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Expected dry hit: -"
+                android:textSize="12sp"
+                android:textColor="@android:color/black"
+                android:elevation="4dp" />
+        </LinearLayout>
     </FrameLayout>
 
     <!-- Plant 2 -->
@@ -68,17 +83,32 @@
             android:layout_gravity="center"
             android:elevation="4dp" />
 
-        <TextView
-            android:id="@+id/plant2Label"
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Plant 2"
-            android:textStyle="bold"
-            android:textSize="14sp"
-            android:textColor="@android:color/black"
             android:layout_gravity="top|start"
-            android:padding="4dp"
-            android:elevation="6dp" />
+            android:orientation="vertical"
+            android:padding="4dp">
+
+            <TextView
+                android:id="@+id/plant2Label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Plant 2"
+                android:textStyle="bold"
+                android:textSize="14sp"
+                android:textColor="@android:color/black"
+                android:elevation="6dp" />
+
+            <TextView
+                android:id="@+id/plant2DryHit"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Expected dry hit: -"
+                android:textSize="12sp"
+                android:textColor="@android:color/black"
+                android:elevation="4dp" />
+        </LinearLayout>
     </FrameLayout>
 
     <!-- Plant 3 -->
@@ -106,17 +136,32 @@
             android:layout_gravity="center"
             android:elevation="4dp" />
 
-        <TextView
-            android:id="@+id/plant3Label"
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Plant 3"
-            android:textStyle="bold"
-            android:textSize="14sp"
-            android:textColor="@android:color/black"
             android:layout_gravity="top|start"
-            android:padding="4dp"
-            android:elevation="6dp" />
+            android:orientation="vertical"
+            android:padding="4dp">
+
+            <TextView
+                android:id="@+id/plant3Label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Plant 3"
+                android:textStyle="bold"
+                android:textSize="14sp"
+                android:textColor="@android:color/black"
+                android:elevation="6dp" />
+
+            <TextView
+                android:id="@+id/plant3DryHit"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Expected dry hit: -"
+                android:textSize="12sp"
+                android:textColor="@android:color/black"
+                android:elevation="4dp" />
+        </LinearLayout>
     </FrameLayout>
 
     <!-- Plant 4 -->
@@ -144,17 +189,32 @@
             android:layout_gravity="center"
             android:elevation="4dp" />
 
-        <TextView
-            android:id="@+id/plant4Label"
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Plant 4"
-            android:textStyle="bold"
-            android:textSize="14sp"
-            android:textColor="@android:color/black"
             android:layout_gravity="top|start"
-            android:padding="4dp"
-            android:elevation="6dp" />
+            android:orientation="vertical"
+            android:padding="4dp">
+
+            <TextView
+                android:id="@+id/plant4Label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Plant 4"
+                android:textStyle="bold"
+                android:textSize="14sp"
+                android:textColor="@android:color/black"
+                android:elevation="6dp" />
+
+            <TextView
+                android:id="@+id/plant4DryHit"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Expected dry hit: -"
+                android:textSize="12sp"
+                android:textColor="@android:color/black"
+                android:elevation="4dp" />
+        </LinearLayout>
     </FrameLayout>
 
     <!-- Plant 5 -->
@@ -182,17 +242,32 @@
             android:layout_gravity="center"
             android:elevation="4dp" />
 
-        <TextView
-            android:id="@+id/plant5Label"
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Plant 5"
-            android:textStyle="bold"
-            android:textSize="14sp"
-            android:textColor="@android:color/black"
             android:layout_gravity="top|start"
-            android:padding="4dp"
-            android:elevation="6dp" />
+            android:orientation="vertical"
+            android:padding="4dp">
+
+            <TextView
+                android:id="@+id/plant5Label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Plant 5"
+                android:textStyle="bold"
+                android:textSize="14sp"
+                android:textColor="@android:color/black"
+                android:elevation="6dp" />
+
+            <TextView
+                android:id="@+id/plant5DryHit"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Expected dry hit: -"
+                android:textSize="12sp"
+                android:textColor="@android:color/black"
+                android:elevation="4dp" />
+        </LinearLayout>
     </FrameLayout>
 
     <!-- Plant 6 -->
@@ -220,17 +295,32 @@
             android:layout_gravity="center"
             android:elevation="4dp" />
 
-        <TextView
-            android:id="@+id/plant6Label"
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Plant 6"
-            android:textStyle="bold"
-            android:textSize="14sp"
-            android:textColor="@android:color/black"
             android:layout_gravity="top|start"
-            android:padding="4dp"
-            android:elevation="6dp" />
+            android:orientation="vertical"
+            android:padding="4dp">
+
+            <TextView
+                android:id="@+id/plant6Label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Plant 6"
+                android:textStyle="bold"
+                android:textSize="14sp"
+                android:textColor="@android:color/black"
+                android:elevation="6dp" />
+
+            <TextView
+                android:id="@+id/plant6DryHit"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Expected dry hit: -"
+                android:textSize="12sp"
+                android:textColor="@android:color/black"
+                android:elevation="4dp" />
+        </LinearLayout>
     </FrameLayout>
 
     <!-- Plant 7 -->
@@ -258,17 +348,32 @@
             android:layout_gravity="center"
             android:elevation="4dp" />
 
-        <TextView
-            android:id="@+id/plant7Label"
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Plant 7"
-            android:textStyle="bold"
-            android:textSize="14sp"
-            android:textColor="@android:color/black"
             android:layout_gravity="top|start"
-            android:padding="4dp"
-            android:elevation="6dp" />
+            android:orientation="vertical"
+            android:padding="4dp">
+
+            <TextView
+                android:id="@+id/plant7Label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Plant 7"
+                android:textStyle="bold"
+                android:textSize="14sp"
+                android:textColor="@android:color/black"
+                android:elevation="6dp" />
+
+            <TextView
+                android:id="@+id/plant7DryHit"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Expected dry hit: -"
+                android:textSize="12sp"
+                android:textColor="@android:color/black"
+                android:elevation="4dp" />
+        </LinearLayout>
     </FrameLayout>
 
     <!-- Plant 8 -->
@@ -296,17 +401,32 @@
             android:layout_gravity="center"
             android:elevation="4dp" />
 
-        <TextView
-            android:id="@+id/plant8Label"
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Plant 8"
-            android:textStyle="bold"
-            android:textSize="14sp"
-            android:textColor="@android:color/black"
             android:layout_gravity="top|start"
-            android:padding="4dp"
-            android:elevation="6dp" />
+            android:orientation="vertical"
+            android:padding="4dp">
+
+            <TextView
+                android:id="@+id/plant8Label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Plant 8"
+                android:textStyle="bold"
+                android:textSize="14sp"
+                android:textColor="@android:color/black"
+                android:elevation="6dp" />
+
+            <TextView
+                android:id="@+id/plant8DryHit"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Expected dry hit: -"
+                android:textSize="12sp"
+                android:textColor="@android:color/black"
+                android:elevation="4dp" />
+        </LinearLayout>
     </FrameLayout>
 
     <!-- Plant 9 -->
@@ -334,17 +454,31 @@
             android:layout_gravity="center"
             android:elevation="4dp" />
 
-        <TextView
-            android:id="@+id/plant9Label"
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Plant 9"
-            android:textStyle="bold"
-            android:textSize="14sp"
-            android:textColor="@android:color/black"
             android:layout_gravity="top|start"
-            android:padding="4dp"
-            android:elevation="6dp" />
-    </FrameLayout>
+            android:orientation="vertical"
+            android:padding="4dp">
 
+            <TextView
+                android:id="@+id/plant9Label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Plant 9"
+                android:textStyle="bold"
+                android:textSize="14sp"
+                android:textColor="@android:color/black"
+                android:elevation="6dp" />
+
+            <TextView
+                android:id="@+id/plant9DryHit"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Expected dry hit: -"
+                android:textSize="12sp"
+                android:textColor="@android:color/black"
+                android:elevation="4dp" />
+        </LinearLayout>
+    </FrameLayout>
 </GridLayout>
