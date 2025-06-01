@@ -37,7 +37,7 @@ class MoistureFragment : Fragment() {
     /* ---- UI + prefs ------------------------------------------------- */
     private lateinit var waveViews: List<WaveView>
     private lateinit var valueTexts: List<TextView>
-    private lateinit var dryHitTexts: List<TextView> // New: for “Expected dry hit in …”
+    private lateinit var dryHitTexts: List<TextView>
 
     private val prefs by lazy {
         PreferenceManager.getDefaultSharedPreferences(requireContext())
@@ -51,7 +51,7 @@ class MoistureFragment : Fragment() {
     private val defaultWaveColor = Color.parseColor("#0097A7")
     private val alertWaveColor = Color.RED
 
-    /* ---- cache entire history JSON once per refresh ----------------- */
+    /* ---- cache entire history from fetch once per update ------------ */
     private var history: List<JSONObject> = emptyList()
 
     /* ---- repeat-every-minute updater -------------------------------- */
@@ -66,7 +66,6 @@ class MoistureFragment : Fragment() {
     /* ================================================================ */
     /*  Fragment lifecycle                                              */
     /* ================================================================ */
-
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
@@ -128,6 +127,28 @@ class MoistureFragment : Fragment() {
         dryValues = List(plantCount) { i -> prefs.getFloat("plant_${i + 1}_dry", 0f) }
         wetValues = List(plantCount) { i -> prefs.getFloat("plant_${i + 1}_wet", 100f) }
 
+        /* ---- set click listener on each plant container: navigate to SensorFragment ---- */
+        containerIds.forEachIndexed { idx, cid ->
+            root.findViewById<FrameLayout>(cid).setOnClickListener {
+                // plant index = idx (0-based for "sensor_uX")
+                val sensorFrag = SensorFragment.newInstance(
+                    plantIndex = idx,
+                    hideNight   = true,
+                    hideSep     = false,
+                    last24h     = false,
+                    bridge      = true,
+                    showTrend   = true
+                )
+                parentFragmentManager.beginTransaction()
+                    .replace(
+                        R.id.fragment_container,   // your activity’s fragment container
+                        sensorFrag
+                    )
+                    .addToBackStack(null)
+                    .commit()
+            }
+        }
+
         handler.post(refreshRunnable)
         return root
     }
@@ -140,7 +161,6 @@ class MoistureFragment : Fragment() {
     /* ================================================================ */
     /*  Data fetch + UI update                                          */
     /* ================================================================ */
-
     private fun fetchLatestMoisture() {
         OkHttpClient().newCall(
             Request.Builder()
@@ -152,8 +172,8 @@ class MoistureFragment : Fragment() {
             override fun onResponse(call: Call, response: Response) {
                 response.body?.string()?.let { body ->
                     val arr = JSONObject(body).getJSONArray("items")
-                    history = List(arr.length()) { i -> arr.getJSONObject(i) }  // cache entire array
-                    if (arr.length() == 0) return
+                    history = List(arr.length()) { i -> arr.getJSONObject(i) }
+                    if (history.isEmpty()) return
 
                     val latest = history.last()
                     activity?.runOnUiThread {
@@ -184,8 +204,7 @@ class MoistureFragment : Fragment() {
     }
 
     /* ================================================================ */
-    /*  Dry-hit prediction                                              */
-    /*  (Matches SensorFragment’s 10-minute-slot slope exactly)          */
+    /*  Dry-hit prediction (uses SensorFragment’s exact slot logic)      */
     /* ================================================================ */
     private fun computeAndShowDryHit(idx: Int) {
         if (history.isEmpty()) return
@@ -194,23 +213,22 @@ class MoistureFragment : Fragment() {
         val dry = dryValues[idx]
         val wet = wetValues[idx]
 
-        /* toggles fixed for moisture overview */
         val hideNight = true
         val last24hOnly = false
         val now = OffsetDateTime.now().plusHours(2)
         val cutoff = now.minusHours(24)
 
-        /* filter raw readings */
+        /* 1) filter raw readings exactly like SensorFragment does */
         val raw = history.mapNotNull { obj ->
             val ts = OffsetDateTime.parse(obj.getString("created_at")).plusHours(2)
-            if (hideNight && ts.hour < 6)          return@mapNotNull null
+            if (hideNight && ts.hour < 6) return@mapNotNull null
             if (last24hOnly && ts.isBefore(cutoff)) return@mapNotNull null
             val v = obj.optInt(key, -1).takeIf { it >= 0 } ?: return@mapNotNull null
             ts to v.toFloat()
         }.sortedBy { it.first }
         if (raw.size < 2) return
 
-        /* build 10-minute slot map (only real points) */
+        /* 2) build 10-minute slot map (only real readings) */
         val slotMap = raw.associateBy(
             { it.first.withMinute(it.first.minute / 10 * 10).withSecond(0).withNano(0) },
             { it.second }
@@ -222,9 +240,7 @@ class MoistureFragment : Fragment() {
         var pos = 0
         var slot = firstSlot
         while (!slot.isAfter(lastSlot)) {
-            if (!(hideNight && slot.hour < 6) &&
-                !(last24hOnly && slot.isBefore(cutoff))
-            ) {
+            if (!(hideNight && slot.hour < 6) && !(last24hOnly && slot.isBefore(cutoff))) {
                 slotMap[slot]?.let { v -> entries += pos to (slot to v) }
                 pos++
             }
@@ -232,7 +248,7 @@ class MoistureFragment : Fragment() {
         }
         if (entries.size < 2) return
 
-        /* identical slope logic to SensorFragment */
+        /* 3) identical slope math as in SensorFragment */
         val values = entries.map { it.second.second }
         val sIdx = values.indexOfLast { it <= wet }.let { if (it == -1) 0 else it }
 
@@ -262,7 +278,7 @@ class MoistureFragment : Fragment() {
     /* ================================================================ */
     private fun maybeNotify(index: Int, percent: Int) {
         if (!prefs.getBoolean("notifications", true)) return
-        if (percent >= 20) return // only when low
+        if (percent >= 20) return
 
         val now = System.currentTimeMillis()
         val key = "plant_${index + 1}_last_alert"
