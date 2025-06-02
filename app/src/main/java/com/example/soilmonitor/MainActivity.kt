@@ -6,11 +6,11 @@ import android.app.NotificationManager
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
-import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import com.google.android.material.bottomnavigation.BottomNavigationView
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
@@ -18,11 +18,7 @@ import java.util.concurrent.TimeUnit
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var btnGraph: TextView
-    private lateinit var btnOther1: TextView   // “Photo” (🌱) is still btnOther1
-    private lateinit var btnHome: TextView      // “Home” (💧)
-    private lateinit var btnOther2: TextView   // “Surrounding” (🌡️) is still btnOther2
-    private lateinit var btnSettings: TextView
+    private lateinit var bottomNavigation: BottomNavigationView
 
     companion object {
         /** Same channel ID is used in MoistureFragment + MoistureCheckWorker */
@@ -41,36 +37,37 @@ class MainActivity : AppCompatActivity() {
         /* ---------- schedule background worker (runs every 15 min) ---------- */
         scheduleBackgroundCheck()
 
-        /* ---------- bottom-nav buttons ---------- */
-        btnGraph    = findViewById(R.id.btnGraph)
-        btnOther1   = findViewById(R.id.btnOther1)
-        btnHome     = findViewById(R.id.btnHome)
-        btnOther2   = findViewById(R.id.btnOther2)
-        btnSettings = findViewById(R.id.btnSettings)
+        /* ---------- bottom‐nav setup ---------- */
+        bottomNavigation = findViewById(R.id.bottomNavigation)
 
-        /* default fragment */
-        selectButton(btnHome)
+        // When the fragment first loads, default to “Home”
+        bottomNavigation.selectedItemId = R.id.nav_home
         loadFragment(MoistureFragment())
 
-        btnGraph.setOnClickListener {
-            selectButton(btnGraph)
-            loadFragment(SensorFragment())
-        }
-        btnHome.setOnClickListener {
-            selectButton(btnHome)
-            loadFragment(MoistureFragment())
-        }
-        btnOther1.setOnClickListener {
-            selectButton(btnOther1)
-            loadFragment(PhotoFragment())
-        }
-        btnOther2.setOnClickListener {
-            selectButton(btnOther2)
-            loadFragment(SurroundingFragment())
-        }
-        btnSettings.setOnClickListener {
-            selectButton(btnSettings)
-            loadFragment(SettingsFragment())
+        bottomNavigation.setOnItemSelectedListener { menuItem ->
+            when (menuItem.itemId) {
+                R.id.nav_graph -> {
+                    loadFragment(SensorFragment())
+                    true
+                }
+                R.id.nav_surrounding -> {
+                    loadFragment(SurroundingFragment())
+                    true
+                }
+                R.id.nav_home -> {
+                    loadFragment(MoistureFragment())
+                    true
+                }
+                R.id.nav_photo -> {
+                    loadFragment(PhotoFragment())
+                    true
+                }
+                R.id.nav_settings -> {
+                    loadFragment(SettingsFragment())
+                    true
+                }
+                else -> false
+            }
         }
     }
 
@@ -131,10 +128,5 @@ class MainActivity : AppCompatActivity() {
         supportFragmentManager.beginTransaction()
             .replace(R.id.fragment_container, fragment)
             .commit()
-    }
-
-    private fun selectButton(selected: TextView) {
-        listOf(btnGraph, btnOther1, btnHome, btnOther2, btnSettings)
-            .forEach { it.isSelected = (it == selected) }
     }
 }

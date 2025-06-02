@@ -22,7 +22,7 @@
             android:layout_height="wrap_content"
             android:text="LIVE"
             android:layout_weight="1"
-            android:layout_marginEnd="8dp"/>
+            android:layout_marginEnd="8dp" />
 
         <Button
             android:id="@+id/btnOneDay"
@@ -30,7 +30,7 @@
             android:layout_height="wrap_content"
             android:text="1 DAY"
             android:layout_weight="1"
-            android:layout_marginHorizontal="8dp"/>
+            android:layout_marginHorizontal="8dp" />
 
         <Button
             android:id="@+id/btnSevenDays"
@@ -38,7 +38,7 @@
             android:layout_height="wrap_content"
             android:text="7 DAYS"
             android:layout_weight="1"
-            android:layout_marginStart="8dp"/>
+            android:layout_marginStart="8dp" />
     </LinearLayout>
 
     <!-- ProgressBar (visible while loading) -->
@@ -51,8 +51,7 @@
         android:layout_gravity="center"
         android:layout_marginBottom="12dp" />
 
-    <!-- IMAGE: width fills parent; height wraps content.
-         adjustViewBounds="true" + fitCenter makes it fill width without cropping. -->
+    <!-- IMAGE: width fills parent; height wraps content. -->
     <ImageView
         android:id="@+id/gifView"
         android:layout_width="match_parent"
@@ -71,5 +70,35 @@
         android:textAppearance="?android:attr/textAppearanceMedium"
         android:gravity="center"
         android:paddingTop="8dp"
-        android:paddingBottom="8dp"/>
+        android:paddingBottom="8dp" />
+
+    <!-- FPS slider row: label + SeekBar -->
+    <LinearLayout
+        android:id="@+id/fps_slider_row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginTop="12dp"
+        android:paddingHorizontal="8dp">
+
+        <!-- Label showing current FPS -->
+        <TextView
+            android:id="@+id/tvFpsLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="FPS: 100"
+            android:textAppearance="?android:attr/textAppearanceMedium"
+            android:paddingEnd="16dp" />
+
+        <!-- SeekBar from 1 to 200 FPS: raw progress 0..199 maps to 1..200 -->
+        <SeekBar
+            android:id="@+id/seekBarFps"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:max="199"
+            android:progress="99"
+            android:splitTrack="false" />
+    </LinearLayout>
 </LinearLayout>

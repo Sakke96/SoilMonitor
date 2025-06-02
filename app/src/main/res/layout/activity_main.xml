@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/container_root"
     android:layout_width="match_parent"
@@ -8,90 +9,22 @@
     android:orientation="vertical"
     tools:context=".MainActivity">
 
-    <!-- Fragment placeholder -->
+    <!-- 1) Fragment placeholder: occupies all space above bottom nav -->
     <FrameLayout
         android:id="@+id/fragment_container"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1" />
 
-    <!-- Bottom-nav bar -->
-    <LinearLayout
-        android:id="@+id/bottomNav"
+    <!-- 2) Modern BottomNavigationView -->
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/bottomNavigation"
         android:layout_width="match_parent"
-        android:layout_height="56dp"
-        android:orientation="horizontal"
-        android:background="#EEEEEE">
-
-        <!-- 1) Graphs (btnGraph) stays far left with 📊 -->
-        <TextView
-            android:id="@+id/btnGraph"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:padding="8dp"
-            android:text="📊"
-            android:textSize="24sp"
-            android:background="@drawable/nav_button_bg"
-            android:foreground="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/nav_graph" />
-
-        <!-- 2) Surrounding (btnOther2) moved to the right of Graphs, with 🌡️ -->
-        <TextView
-            android:id="@+id/btnOther2"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:padding="8dp"
-            android:text="🌡️"
-            android:textSize="24sp"
-            android:background="@drawable/nav_button_bg"
-            android:foreground="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/nav_surrounding" />
-
-        <!-- 3) Home (btnHome) remains in the center, now with 💧 -->
-        <TextView
-            android:id="@+id/btnHome"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:padding="8dp"
-            android:text="💧"
-            android:textSize="24sp"
-            android:background="@drawable/nav_button_bg"
-            android:foreground="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/nav_home" />
-
-        <!-- 4) Photo (btnOther1) moved to the right of Home, now with 🌱 -->
-        <TextView
-            android:id="@+id/btnOther1"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:padding="8dp"
-            android:text="🌱"
-            android:textSize="24sp"
-            android:background="@drawable/nav_button_bg"
-            android:foreground="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/nav_photo" />
-
-        <!-- 5) Settings (btnSettings) remains far right with ⚙️ -->
-        <TextView
-            android:id="@+id/btnSettings"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:padding="8dp"
-            android:text="⚙️"
-            android:textSize="24sp"
-            android:background="@drawable/nav_button_bg"
-            android:foreground="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/nav_settings" />
-
-    </LinearLayout>
+        android:layout_height="wrap_content"
+        android:background="?android:attr/windowBackground"
+        app:menu="@menu/bottom_nav_menu"
+        app:itemIconTint="@color/nav_item_color_state"
+        app:itemTextColor="@color/nav_item_color_state"
+        app:labelVisibilityMode="labeled"
+        />
 </LinearLayout>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- State when item is selected: use your accent/primary color -->
+    <item android:color="@color/colorPrimary" android:state_checked="true" />
+
+    <!-- Default (unselected): use a gray tone -->
+    <item android:color="@android:color/darker_gray" />
+
+</selector>

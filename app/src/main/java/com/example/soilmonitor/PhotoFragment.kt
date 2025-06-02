@@ -10,6 +10,7 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.ProgressBar
+import android.widget.SeekBar
 import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
@@ -35,6 +36,11 @@ class PhotoFragment : Fragment() {
     private lateinit var gifView: ImageView
     private lateinit var tvTimestamp: TextView
 
+    // Slider components
+    private lateinit var seekBarFps: SeekBar
+    private lateinit var tvFpsLabel: TextView
+    private lateinit var fpsSliderRow: View    // reference to the entire row for show/hide
+
     // Base URL to fetch JPEG index pages and images
     private val SERVER_BASE = "http://kasiyip.be/shitting"
 
@@ -44,6 +50,11 @@ class PhotoFragment : Fragment() {
 
     // Date formatter using "dd/MM/yyyy HH:mm" (no seconds)
     private val sdfDisplay = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.US)
+
+    // Caching & FPS handling
+    private var currentFrames: List<Pair<Bitmap, Long>>? = null
+    private var currentDays: Int = 1
+    private var currentFps: Int = 100   // default = 100 fps (10ms delay)
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -59,7 +70,12 @@ class PhotoFragment : Fragment() {
         gifView = root.findViewById(R.id.gifView)
         tvTimestamp = root.findViewById(R.id.tvTimestamp)
 
-        // By default, ensure ImageView uses fitCenter (full width, no cropping)
+        // Slider views
+        fpsSliderRow = root.findViewById(R.id.fps_slider_row)
+        seekBarFps = root.findViewById(R.id.seekBarFps)
+        tvFpsLabel = root.findViewById(R.id.tvFpsLabel)
+
+        // By default, image uses fitCenter (no cropping).
         gifView.scaleType = ImageView.ScaleType.FIT_CENTER
 
         btnOneDay.setOnClickListener {
@@ -75,17 +91,38 @@ class PhotoFragment : Fragment() {
             startLiveMode()
         }
 
-        // ──────────────────────────────────────────────────────────────────────────────
-        // *** NEW: Start Live Mode immediately when the fragment is opened ***
-        // ──────────────────────────────────────────────────────────────────────────────
+        // ──────────────────────────────────────────────────────────────────────────
+        // 1) Initialize FPS slider to 100, update label, and hide slider (Live mode)
+        // ──────────────────────────────────────────────────────────────────────────
+        currentFps = 100
+        seekBarFps.progress = currentFps - 1     // raw 0..199 → actual 1..200
+        tvFpsLabel.text = "FPS: $currentFps"
+        fpsSliderRow.visibility = View.GONE      // hide initially (Live is default)
+
+        // SeekBar change listener
+        seekBarFps.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                currentFps = progress + 1
+                tvFpsLabel.text = "FPS: $currentFps"
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) { }
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {
+                currentFrames?.let { frames ->
+                    restartAnimation(frames)
+                }
+            }
+        })
+
+        // ──────────────────────────────────────────────────────────────────────────
+        // 2) Start Live mode by default on fragment creation
+        // ──────────────────────────────────────────────────────────────────────────
         startLiveMode()
 
         return root
     }
 
     // ──────────────────────────────────────────────────────────────────────────────
-    // 1) ANIMATION MODE (1-Day / 7-Day): download all JPEGs for each requested date,
-    //    set each file’s lastModified from the HTTP header, and cycle frames.
+    // 1) ANIMATION MODE (1-Day / 7-Day) → show FPS slider, download frames, then animate
     // ──────────────────────────────────────────────────────────────────────────────
     private fun startAnimationMode(days: Int) {
         progressBar.visibility = View.VISIBLE
@@ -93,42 +130,38 @@ class PhotoFragment : Fragment() {
         tvTimestamp.text = "—"
         stopAnimationMode()
 
+        currentDays = days
+        currentFrames = null               // clear any old frames
+
+        // Show FPS slider when starting animation mode
+        fpsSliderRow.visibility = View.VISIBLE
+
         animJob = lifecycleScope.launch(Dispatchers.IO) {
             try {
-                // 1. Build a list of the last N dates, e.g. ["2025-06-02", "2025-06-01", ...]
+                // 1. Build a list of the last N dates (e.g. ["2025-06-02", "2025-06-01", ...])
                 val dateList = getLastNDates(days)
 
-                // 2. For each date, download all JPEGs and collect (Bitmap, timestampMillis)
+                // 2. Download all JPEGs for those dates and collect (Bitmap, timestampMillis)
                 val frames: MutableList<Pair<Bitmap, Long>> = mutableListOf()
                 for (dateStr in dateList) {
                     val localFiles = downloadAllForDate(dateStr)
                     for (file in localFiles) {
                         val bmp = BitmapFactory.decodeFile(file.absolutePath)
                         if (bmp != null) {
-                            val tsMillis = file.lastModified() // Already set during download
+                            val tsMillis = file.lastModified() // from HTTP “Last-Modified”
                             frames.add(Pair(bmp, tsMillis))
                         }
                     }
                 }
 
-                // 3. Switch to Main thread to start cycling through frames
+                // Cache them so we can re‐animate at a new FPS without re-downloading
+                currentFrames = frames
+
                 withContext(Dispatchers.Main) {
                     progressBar.visibility = View.GONE
                     if (frames.isNotEmpty()) {
                         gifView.visibility = View.VISIBLE
-
-                        // Launch a coroutine on Main to cycle through the frames
-                        animJob = lifecycleScope.launch {
-                            var index = 0
-                            val frameDelayMs = 50L
-                            while (isActive) {
-                                val (bitmap, tsMillis) = frames[index]
-                                gifView.setImageBitmap(bitmap)
-                                tvTimestamp.text = sdfDisplay.format(Date(tsMillis))
-                                index = (index + 1) % frames.size
-                                delay(frameDelayMs)
-                            }
-                        }
+                        animateFrames(frames)
                     } else {
                         gifView.visibility = View.GONE
                         tvTimestamp.text = "No images available"
@@ -149,14 +182,44 @@ class PhotoFragment : Fragment() {
         animJob = null
     }
 
+    /** Starts a coroutine that loops through `frames` at `currentFps`. */
+    private fun animateFrames(frames: List<Pair<Bitmap, Long>>) {
+        // Cancel existing job if any
+        animJob?.cancel()
+
+        // Compute delay in ms (guard if currentFps somehow becomes 0)
+        val delayMs = if (currentFps > 0) 1000L / currentFps else 10L
+
+        animJob = lifecycleScope.launch(Dispatchers.Main) {
+            var index = 0
+            while (isActive) {
+                val (bitmap, tsMillis) = frames[index]
+                gifView.setImageBitmap(bitmap)
+                tvTimestamp.text = sdfDisplay.format(Date(tsMillis))
+                index = (index + 1) % frames.size
+                delay(delayMs)
+            }
+        }
+    }
+
+    /** Called after the user adjusts FPS and releases the SeekBar. */
+    private fun restartAnimation(frames: List<Pair<Bitmap, Long>>) {
+        // Only restart if we’re truly in animation mode
+        if (currentFrames != null) {
+            animateFrames(frames)
+        }
+    }
+
     // ──────────────────────────────────────────────────────────────────────────────
-    // 2) LIVE MODE: Every 60 seconds, fetch the latest JPEG for “today,” show it,
-    //    and update the timestamp below the ImageView.
+    // 2) LIVE MODE → hide FPS slider and refresh the latest JPEG every 60s
     // ──────────────────────────────────────────────────────────────────────────────
     private fun startLiveMode() {
         stopLiveMode()
         progressBar.visibility = View.VISIBLE
         tvTimestamp.text = "—"
+
+        // Hide FPS slider in Live mode
+        fpsSliderRow.visibility = View.GONE
 
         liveJob = lifecycleScope.launch(Dispatchers.IO) {
             while (isActive) {
@@ -173,7 +236,7 @@ class PhotoFragment : Fragment() {
                         tvTimestamp.text = "No live image"
                     }
                 }
-                // Wait 60 seconds before refreshing
+                // Refresh every 60 seconds
                 delay(60_000L)
             }
         }
@@ -194,16 +257,13 @@ class PhotoFragment : Fragment() {
     // 3) HELPERS: fetchLatestPhoto(), getLastNDates(), downloadAllForDate(), downloadFile(), fetchUrlAsString()
     // ──────────────────────────────────────────────────────────────────────────────
     private fun fetchLatestPhoto(): Pair<Bitmap, Long>? {
-        // Build today’s folder, e.g. “photos/2025-06-02”
         val dateStr = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
         val localDir = File(requireContext().filesDir, "photos/$dateStr")
         if (!localDir.exists()) localDir.mkdirs()
 
-        // 1) Fetch the index HTML for today’s folder
         val indexUrl = "$SERVER_BASE/data/$dateStr/"
         val html = fetchUrlAsString(indexUrl) ?: return null
 
-        // 2) Parse “href="<n>.jpg"” and pick the largest <n> for the latest frame
         val regex = Regex("""href="(\d+\.jpg)"""")
         val matches = regex.findAll(html).toList()
         if (matches.isEmpty()) return null
@@ -216,12 +276,10 @@ class PhotoFragment : Fragment() {
         val latestUrl = "$indexUrl$latestHref"
         val latestLocal = File(localDir, latestHref)
 
-        // 3) Download if not already on disk (downloadFile(...) will set lastModified)
         if (!latestLocal.exists()) {
             downloadFile(latestUrl, latestLocal)
         }
 
-        // 4) Decode bitmap and return (bitmap, file.lastModified())
         val bmp = BitmapFactory.decodeFile(latestLocal.absolutePath) ?: return null
         val tsMillis = latestLocal.lastModified()
         return Pair(bmp, tsMillis)
@@ -250,12 +308,12 @@ class PhotoFragment : Fragment() {
         val downloadedFiles = mutableListOf<File>()
 
         for (m in matches) {
-            val href = m.groupValues[1]                      // e.g. "1.jpg"
-            val fileUrl = "$indexUrl$href"                   // e.g. "http://kasiyip.be/shitting/data/2025-06-01/1.jpg"
+            val href = m.groupValues[1]
+            val fileUrl = "$indexUrl$href"
             val localFile = File(localDir, href)
 
             if (!localFile.exists()) {
-                downloadFile(fileUrl, localFile)             // downloadFile(...) sets file.lastModified()
+                downloadFile(fileUrl, localFile)
             }
             downloadedFiles.add(localFile)
         }
@@ -291,13 +349,11 @@ class PhotoFragment : Fragment() {
                 conn.connect()
 
                 if (conn.responseCode == 200) {
-                    // 1) Copy stream → local file
                     conn.inputStream.use { input ->
                         FileOutputStream(destFile).use { out ->
                             input.copyTo(out)
                         }
                     }
-                    // 2) Read “Last-Modified” (milliseconds since epoch) and apply it
                     val remoteLastMod = conn.lastModified
                     if (remoteLastMod > 0) {
                         destFile.setLastModified(remoteLastMod)
