@@ -23,9 +23,9 @@
     </string-array>
 
     <string name="nav_graph">Grafiek</string>
-    <string name="nav_other1">Overig 1</string>
+    <string name="nav_photo">Photo</string>
     <string name="nav_home">Home</string>
-    <string name="nav_other2">Overig 2</string>
+    <string name="nav_surrounding">Surrounding 2</string>
     <string name="nav_settings">Instellingen</string>
 
 

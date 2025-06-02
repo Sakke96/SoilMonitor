@@ -15,7 +15,7 @@
         android:layout_height="0dp"
         android:layout_weight="1" />
 
-    <!-- Bottom-nav met emoji’s -->
+    <!-- Bottom-nav bar -->
     <LinearLayout
         android:id="@+id/bottomNav"
         android:layout_width="match_parent"
@@ -23,6 +23,7 @@
         android:orientation="horizontal"
         android:background="#EEEEEE">
 
+        <!-- 1) Graphs (btnGraph) stays far left with 📊 -->
         <TextView
             android:id="@+id/btnGraph"
             android:layout_width="0dp"
@@ -36,32 +37,7 @@
             android:foreground="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/nav_graph" />
 
-        <TextView
-            android:id="@+id/btnOther1"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:padding="8dp"
-            android:text="🧭"
-            android:textSize="24sp"
-            android:background="@drawable/nav_button_bg"
-            android:foreground="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/nav_other1" />
-
-        <TextView
-            android:id="@+id/btnHome"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:padding="8dp"
-            android:text="🏠"
-            android:textSize="24sp"
-            android:background="@drawable/nav_button_bg"
-            android:foreground="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/nav_home" />
-
+        <!-- 2) Surrounding (btnOther2) moved to the right of Graphs, with 🌡️ -->
         <TextView
             android:id="@+id/btnOther2"
             android:layout_width="0dp"
@@ -69,12 +45,41 @@
             android:layout_weight="1"
             android:gravity="center"
             android:padding="8dp"
-            android:text="🗺️"
+            android:text="🌡️"
             android:textSize="24sp"
             android:background="@drawable/nav_button_bg"
             android:foreground="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/nav_other2" />
+            android:contentDescription="@string/nav_surrounding" />
 
+        <!-- 3) Home (btnHome) remains in the center, now with 💧 -->
+        <TextView
+            android:id="@+id/btnHome"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:padding="8dp"
+            android:text="💧"
+            android:textSize="24sp"
+            android:background="@drawable/nav_button_bg"
+            android:foreground="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/nav_home" />
+
+        <!-- 4) Photo (btnOther1) moved to the right of Home, now with 🌱 -->
+        <TextView
+            android:id="@+id/btnOther1"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:padding="8dp"
+            android:text="🌱"
+            android:textSize="24sp"
+            android:background="@drawable/nav_button_bg"
+            android:foreground="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/nav_photo" />
+
+        <!-- 5) Settings (btnSettings) remains far right with ⚙️ -->
         <TextView
             android:id="@+id/btnSettings"
             android:layout_width="0dp"

@@ -94,6 +94,9 @@ class SurroundingFragment : Fragment() {
         last24hCheckBox       = view.findViewById(R.id.checkLast24h)
         bridgeGapsCheckBox    = view.findViewById(R.id.checkBridgeGaps)
 
+        /* ---- auto‐enable temperature by default ---- */
+        switchTemp.isChecked = true
+
         /* ---- listeners ---- */
         val rerender: (View, Boolean) -> Unit = { _, _ -> updateChart() }
         listOf(
@@ -105,6 +108,9 @@ class SurroundingFragment : Fragment() {
                 is CheckBox -> v.setOnCheckedChangeListener(rerender)
             }
         }
+
+        /* ---- immediately render once (temperature on) ---- */
+        updateChart()
 
         /* ---- start polling ---- */
         handler.post(refreshRunnable)

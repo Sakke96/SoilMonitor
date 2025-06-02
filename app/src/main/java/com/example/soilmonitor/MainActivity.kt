@@ -19,9 +19,9 @@ import java.util.concurrent.TimeUnit
 class MainActivity : AppCompatActivity() {
 
     private lateinit var btnGraph: TextView
-    private lateinit var btnOther1: TextView
-    private lateinit var btnHome: TextView
-    private lateinit var btnOther2: TextView
+    private lateinit var btnOther1: TextView   // “Photo” (🌱) is still btnOther1
+    private lateinit var btnHome: TextView      // “Home” (💧)
+    private lateinit var btnOther2: TextView   // “Surrounding” (🌡️) is still btnOther2
     private lateinit var btnSettings: TextView
 
     companion object {
@@ -66,7 +66,7 @@ class MainActivity : AppCompatActivity() {
         }
         btnOther2.setOnClickListener {
             selectButton(btnOther2)
-            loadFragment(SurroundingFragment())  // updated
+            loadFragment(SurroundingFragment())
         }
         btnSettings.setOnClickListener {
             selectButton(btnSettings)
