@@ -5,13 +5,23 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.preference.PreferenceManager
-import android.view.*
-import android.widget.*
+import android.text.TextUtils
+import android.view.Gravity
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.Button
+import android.widget.CheckBox
+import android.widget.CompoundButton
+import android.widget.LinearLayout
+import android.widget.TextView
 import androidx.fragment.app.Fragment
 import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.components.Legend
 import com.github.mikephil.charting.components.LimitLine
-import com.github.mikephil.charting.data.*
+import com.github.mikephil.charting.data.Entry
+import com.github.mikephil.charting.data.LineData
+import com.github.mikephil.charting.data.LineDataSet
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
 import com.github.mikephil.charting.interfaces.datasets.ILineDataSet
 import okhttp3.*
@@ -22,13 +32,14 @@ import java.time.format.DateTimeFormatter
 import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.roundToInt
 import kotlin.math.roundToLong
 
 class SensorFragment : Fragment() {
 
     /* ---------- UI ---------- */
     private lateinit var chart: LineChart
-    private lateinit var sensorSpinner: Spinner
+    private lateinit var sensorLayout: LinearLayout         // container for equally‐weighted Buttons
     private lateinit var hideNightBox: CheckBox
     private lateinit var hideSepBox: CheckBox
     private lateinit var last24hBox: CheckBox
@@ -46,13 +57,17 @@ class SensorFragment : Fragment() {
     private lateinit var dryVals: List<Float>
     private lateinit var wetVals: List<Float>
 
-    /** Fixed palette: Plant 1-4 = red, blue, green, magenta  */
+    /** Fixed palette: Plant 1–4 = red, blue, green, magenta  */
     private val colours = listOf(
         android.graphics.Color.RED,
         android.graphics.Color.BLUE,
         android.graphics.Color.GREEN,
         android.graphics.Color.MAGENTA
     )
+
+    /* ---------- selection state ---------- */
+    private var selectedSensorIndex = 0   // 0 = "All Sensors", 1 = "Plant 1", etc.
+    private val sensorButtons = mutableListOf<Button>()
 
     /* ---------- polling ---------- */
     private val handler = Handler(Looper.getMainLooper())
@@ -119,10 +134,10 @@ class SensorFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        /* ---- bind ---- */
+        /* ---- bind views ---- */
         prefs         = PreferenceManager.getDefaultSharedPreferences(requireContext())
         chart         = view.findViewById(R.id.lineChart)
-        sensorSpinner = view.findViewById(R.id.sensorSpinner)
+        sensorLayout  = view.findViewById(R.id.sensorLayout)      // NEW: equal‐width button container
         hideNightBox  = view.findViewById(R.id.hideNightCheckBox)
         hideSepBox    = view.findViewById(R.id.hideSeparatorCheckBox)
         last24hBox    = view.findViewById(R.id.last24hCheckBox)
@@ -130,52 +145,91 @@ class SensorFragment : Fragment() {
         trendBox      = view.findViewById(R.id.trendLineCheckBox)
         predictionTxt = view.findViewById(R.id.trendPredictionText)
 
-        /* ---- sensor meta ---- */
+        /* ---- sensor meta from prefs ---- */
         val plants = prefs.getInt("plantCount", 4)
         sensorKeys   = List(plants) { i -> "sensor_u${i}" }
-        sensorLabels = listOf("All Sensors") + List(plants) { i -> "Plant ${i + 1}" }
+        sensorLabels = listOf("All") + List(plants) { i -> "Plant ${i + 1}" }
         dryVals      = List(plants) { i -> prefs.getFloat("plant_${i + 1}_dry", 400f) }
         wetVals      = List(plants) { i -> prefs.getFloat("plant_${i + 1}_wet", 350f) }
 
-        /* ---- spinner adapter + listener ---- */
-        ArrayAdapter(
-            requireContext(),
-            android.R.layout.simple_spinner_item,
-            sensorLabels
-        ).also {
-            it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-            sensorSpinner.adapter = it
+        /* ---- dynamically create one equally‐weighted Button per label ---- */
+        sensorLayout.removeAllViews()
+        sensorButtons.clear()
+
+        // Convert 48dp to pixels for fixed button height
+        val buttonHeightPx = dpToPx(48)
+
+        sensorLabels.forEachIndexed { idx, label ->
+            val btn = Button(requireContext()).apply {
+                text = label
+                tag = idx
+                isAllCaps = false
+
+                // FORCE single line (no wrapping). If the text is too long, it will be ellipsized.
+                setSingleLine(true)
+                ellipsize = TextUtils.TruncateAt.END
+
+                // FIXED HEIGHT = 48dp; width = 0dp + weight = 1 so all 5 share space equally
+                layoutParams = LinearLayout.LayoutParams(
+                    0,
+                    buttonHeightPx,
+                    1f
+                ).apply {
+                    // small horizontal margin between buttons
+                    setMargins(dpToPx(4), 0, dpToPx(4), 0)
+                }
+
+                // Center text vertically & horizontally
+                gravity = Gravity.CENTER
+
+                // Background based on whether this is the initially selected index
+                setBackgroundResource(
+                    if (idx == selectedSensorIndex)
+                        R.drawable.sensor_button_selected
+                    else
+                        R.drawable.sensor_button_unselected
+                )
+
+                setOnClickListener {
+                    val clickedIndex = it.tag as Int
+                    if (clickedIndex == selectedSensorIndex) return@setOnClickListener
+
+                    // Un‐select the previously selected button
+                    sensorButtons[selectedSensorIndex].setBackgroundResource(
+                        R.drawable.sensor_button_unselected
+                    )
+                    // Mark this one as selected
+                    selectedSensorIndex = clickedIndex
+                    this.setBackgroundResource(R.drawable.sensor_button_selected)
+
+                    redraw()
+                }
+            }
+            sensorButtons.add(btn)
+            sensorLayout.addView(btn)
         }
 
-        /* —— IF arguments exist, set initial spinner selection & toggles —— */
+        /* —— IF fragment arguments exist, pre‐select as requested —— */
         arguments?.let { args ->
             val plantIndex = args.getInt(ARG_PLANT_INDEX, 0).coerceIn(0, plants - 1)
-            val hideNight  = args.getBoolean(ARG_HIDE_NIGHT,  false)
-            val hideSep    = args.getBoolean(ARG_HIDE_SEP,    false)
-            val last24h    = args.getBoolean(ARG_LAST24H,     false)
-            val bridge     = args.getBoolean(ARG_BRIDGE,      false)
-            val showTrend  = args.getBoolean(ARG_SHOW_TREND,  false)
+            val desiredIdx = plantIndex + 1
+            // swap selected backgrounds
+            sensorButtons[selectedSensorIndex].setBackgroundResource(
+                R.drawable.sensor_button_unselected
+            )
+            sensorButtons[desiredIdx].setBackgroundResource(
+                R.drawable.sensor_button_selected
+            )
+            selectedSensorIndex = desiredIdx
 
-            sensorSpinner.setSelection(plantIndex + 1, false)  // +1 because 0 = “All Sensors”
-            hideNightBox.isChecked  = hideNight
-            hideSepBox.isChecked    = hideSep
-            last24hBox.isChecked    = last24h
-            bridgeBox.isChecked     = bridge
-            trendBox.isChecked      = showTrend
-        } ?: run {
-            sensorSpinner.setSelection(0, false)
+            hideNightBox.isChecked  = args.getBoolean(ARG_HIDE_NIGHT, false)
+            hideSepBox.isChecked    = args.getBoolean(ARG_HIDE_SEP, false)
+            last24hBox.isChecked    = args.getBoolean(ARG_LAST24H, false)
+            bridgeBox.isChecked     = args.getBoolean(ARG_BRIDGE, false)
+            trendBox.isChecked      = args.getBoolean(ARG_SHOW_TREND, false)
         }
 
-        sensorSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(
-                parent: AdapterView<*>, view: View?, pos: Int, id: Long
-            ) {
-                redraw()
-            }
-            override fun onNothingSelected(parent: AdapterView<*>) {}
-        }
-
-        /* ---- toggles: any change → redraw() ---- */
+        /* ---- toggles: on change → redraw() ---- */
         val listener = CompoundButton.OnCheckedChangeListener { _, _ -> redraw() }
         hideNightBox.setOnCheckedChangeListener(listener)
         hideSepBox.setOnCheckedChangeListener(listener)
@@ -217,8 +271,7 @@ class SensorFragment : Fragment() {
 
     /* =============================================================== */
     /*  MAIN DRAW function                                              */
-    /*  (identical to your original SensorFragment.redraw(), but       */
-    /*   setting predictionTxt at the end if needed)                    */
+    /*  (same logic as before, except using selectedSensorIndex…)       */
     /* =============================================================== */
     private fun redraw() {
         if (dataList.isEmpty()) return
@@ -228,7 +281,8 @@ class SensorFragment : Fragment() {
         val hideSep     = hideSepBox.isChecked
         val last24hOnly = last24hBox.isChecked
         val bridge      = bridgeBox.isChecked
-        val showTrend   = trendBox.isChecked && sensorSpinner.selectedItemPosition != 0
+        // only show trend if a single plant is chosen (i.e. selectedSensorIndex ≠ 0)
+        val showTrend   = trendBox.isChecked && selectedSensorIndex != 0
 
         /* ---- helpers ---- */
         val now    = OffsetDateTime.now().plusHours(2)
@@ -245,7 +299,7 @@ class SensorFragment : Fragment() {
         /* ============================================================ */
         /*  A) “All Sensors” (index 0)                                  */
         /* ============================================================ */
-        if (sensorSpinner.selectedItemPosition == 0) {
+        if (selectedSensorIndex == 0) {
             chart.fitScreen()
             chart.setAutoScaleMinMaxEnabled(true)
             yAxis.resetAxisMinimum()
@@ -378,7 +432,7 @@ class SensorFragment : Fragment() {
         /* ============================================================ */
         /*  B) SINGLE PLANT (index ≥ 1)                                 */
         /* ============================================================ */
-        val idx = sensorSpinner.selectedItemPosition - 1
+        val idx = selectedSensorIndex - 1
         val key = sensorKeys[idx]
         val wet = wetVals[idx]
         val dry = dryVals[idx]
@@ -451,14 +505,14 @@ class SensorFragment : Fragment() {
         }
 
         /* wet / dry bands */
-        yAxis.addLimitLine(LimitLine(dry, "Dry"))
-        yAxis.addLimitLine(LimitLine(wet, "Wet"))
+        chart.axisLeft.addLimitLine(LimitLine(dry, "Dry"))
+        chart.axisLeft.addLimitLine(LimitLine(wet, "Wet"))
         val span = max(wet, dry) - min(wet, dry)
-        yAxis.axisMinimum = min(entries.minOf { it.y }, min(wet, dry) - span)
-        yAxis.axisMaximum = max(entries.maxOf { it.y }, max(wet, dry) + span)
+        chart.axisLeft.axisMinimum = min(entries.minOf { it.y }, min(wet, dry) - span)
+        chart.axisLeft.axisMaximum = max(entries.maxOf { it.y }, max(wet, dry) + span)
 
-        /* Trend-to-dry line */
-        if (showTrend && entries.size >= 2) {
+        /* Trend‐to‐dry line */
+        if (trendBox.isChecked && selectedSensorIndex != 0 && entries.size >= 2) {
             val sIdx = entries.indexOfLast { it.y <= wet }.let { if (it == -1) 0 else it }
             val start = entries[sIdx]
             val end = entries.last()
@@ -501,5 +555,10 @@ class SensorFragment : Fragment() {
         chart.description.isEnabled = false
         chart.animateX(600)
         chart.invalidate()
+    }
+
+    /** Utility to convert dp → pixels */
+    private fun dpToPx(dp: Int): Int {
+        return (dp * resources.displayMetrics.density).roundToInt()
     }
 }

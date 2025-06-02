@@ -10,5 +10,6 @@
     <color name="colorPrimary">#CA1414</color>
     <color name="wave_default">#DDDDDD</color>  <!-- your original blue -->
     <color name="alert_red">#FFFF0000</color>
+    <color name="lightred">#F2756E</color>
 </resources>
 
