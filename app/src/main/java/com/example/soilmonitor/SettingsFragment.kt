@@ -1,4 +1,3 @@
-// SettingsFragment.kt
 package com.example.soilmonitor
 
 import android.content.SharedPreferences
@@ -13,9 +12,11 @@ import android.widget.LinearLayout
 import android.widget.NumberPicker
 import android.widget.Spinner
 import android.widget.TextView
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import com.google.android.material.switchmaterial.SwitchMaterial
 import okhttp3.*
+import java.io.File
 import java.io.IOException
 
 class SettingsFragment : Fragment() {
@@ -82,8 +83,21 @@ class SettingsFragment : Fragment() {
         }
         populateThresholdFields(numberPickerPlants.value)
 
+        // NEW: Clear only the saved photos (filesDir/photos/**)
         buttonClearCache.setOnClickListener {
-            // TODO: cache-clear logic
+            // Point at /data/data/com.example.soilmonitor/files/photos
+            val photosRoot = File(requireContext().filesDir, "photos")
+
+            if (photosRoot.exists()) {
+                val deleted = photosRoot.deleteRecursively()
+                if (deleted) {
+                    Toast.makeText(requireContext(), "Photo cache cleared", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(requireContext(), "Failed to clear photo cache", Toast.LENGTH_SHORT).show()
+                }
+            } else {
+                Toast.makeText(requireContext(), "No cached photos to delete", Toast.LENGTH_SHORT).show()
+            }
         }
 
         // Decimate button listener
