@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-<style name="Theme.SoilMonitor" parent="Theme.Material3.DayNight.NoActionBar" />
+<!-- Use a MaterialComponents parent so XML widgets work without crashing -->
+<style name="Theme.SoilMonitor" parent="Theme.MaterialComponents.DayNight.NoActionBar" />
 </resources>
