@@ -8,7 +8,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
-import android.widget.EditText
+import android.app.DatePickerDialog
+import android.app.TimePickerDialog
 import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.SeekBar
@@ -36,8 +37,8 @@ class PhotoFragment : Fragment() {
     private lateinit var progressBar: ProgressBar
     private lateinit var gifView: ImageView
     private lateinit var tvTimestamp: TextView
-    private lateinit var editFrom: EditText
-    private lateinit var editTo: EditText
+    private lateinit var btnFrom: Button
+    private lateinit var btnTo: Button
     private lateinit var seekBarTime: SeekBar
 
     // Slider components
@@ -59,6 +60,8 @@ class PhotoFragment : Fragment() {
     private var currentFrames: List<Pair<Bitmap, Long>>? = null
     private var currentFps: Int = 100   // default = 100 fps (10ms delay)
     private val sdfInput = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US)
+    private var fromDate: Date = Date()
+    private var toDate: Date = Date()
     private var liveFiles: List<File> = emptyList()
     private var userSeeking: Boolean = false
 
@@ -74,9 +77,35 @@ class PhotoFragment : Fragment() {
         progressBar = root.findViewById(R.id.progressBar)
         gifView = root.findViewById(R.id.gifView)
         tvTimestamp = root.findViewById(R.id.tvTimestamp)
-        editFrom = root.findViewById(R.id.editFrom)
-        editTo = root.findViewById(R.id.editTo)
+        btnFrom = root.findViewById(R.id.btnFrom)
+        btnTo = root.findViewById(R.id.btnTo)
         seekBarTime = root.findViewById(R.id.seekBarTime)
+
+        val calNow = Calendar.getInstance()
+        toDate = calNow.time
+        fromDate = (calNow.clone() as Calendar).apply {
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.time
+
+        btnFrom.text = sdfInput.format(fromDate)
+        btnTo.text = sdfInput.format(toDate)
+
+        btnFrom.setOnClickListener {
+            showDateTimePicker(fromDate) { date ->
+                fromDate = date
+                btnFrom.text = sdfInput.format(date)
+            }
+        }
+
+        btnTo.setOnClickListener {
+            showDateTimePicker(toDate) { date ->
+                toDate = date
+                btnTo.text = sdfInput.format(date)
+            }
+        }
 
         // Slider views
         fpsSliderRow = root.findViewById(R.id.fps_slider_row)
@@ -89,21 +118,10 @@ class PhotoFragment : Fragment() {
         btnTimelapse.setOnClickListener {
             stopLiveMode()
 
-            val fromStr = editFrom.text.toString().trim()
-            val toStr = editTo.text.toString().trim()
-
-            if (fromStr.isBlank() || toStr.isBlank()) {
-                Toast.makeText(requireContext(), "Enter from/to date", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-
-            val from = runCatching { sdfInput.parse(fromStr) }.getOrNull()
-            val to = runCatching { sdfInput.parse(toStr) }.getOrNull()
-
-            if (from == null || to == null || from.after(to)) {
+            if (fromDate.after(toDate)) {
                 Toast.makeText(requireContext(), "Invalid date range", Toast.LENGTH_SHORT).show()
             } else {
-                startTimelapseMode(from, to)
+                startTimelapseMode(fromDate, toDate)
             }
         }
         btnLive.setOnClickListener {
@@ -422,5 +440,21 @@ class PhotoFragment : Fragment() {
                 conn.disconnect()
             }
         }
+    }
+
+    private fun showDateTimePicker(initial: Date, callback: (Date) -> Unit) {
+        val cal = Calendar.getInstance().apply { time = initial }
+        DatePickerDialog(requireContext(), { _, year, month, day ->
+            cal.set(Calendar.YEAR, year)
+            cal.set(Calendar.MONTH, month)
+            cal.set(Calendar.DAY_OF_MONTH, day)
+            val h = cal.get(Calendar.HOUR_OF_DAY)
+            val m = cal.get(Calendar.MINUTE)
+            TimePickerDialog(requireContext(), { _, hour, minute ->
+                cal.set(Calendar.HOUR_OF_DAY, hour)
+                cal.set(Calendar.MINUTE, minute)
+                callback(cal.time)
+            }, h, m, true).show()
+        }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show()
     }
 }
