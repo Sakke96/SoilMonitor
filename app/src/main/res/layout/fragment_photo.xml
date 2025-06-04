@@ -33,20 +33,18 @@
             android:layout_marginStart="8dp" />
     </LinearLayout>
 
-    <!-- Timelapse range inputs -->
-    <EditText
-        android:id="@+id/editFrom"
+    <!-- Timelapse range buttons (open date/time pickers) -->
+    <Button
+        android:id="@+id/btnFrom"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="From (yyyy-MM-dd HH:mm)"
-        android:inputType="datetime" />
+        android:text="From" />
 
-    <EditText
-        android:id="@+id/editTo"
+    <Button
+        android:id="@+id/btnTo"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="To (yyyy-MM-dd HH:mm)"
-        android:inputType="datetime"
+        android:text="To"
         android:layout_marginBottom="12dp" />
 
     <!-- ProgressBar (visible while loading) -->
