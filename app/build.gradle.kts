@@ -69,5 +69,6 @@ dependencies {
 // Glide for GIF/PNG/JPEG loading (including animated GIF support)
     implementation("com.github.bumptech.glide:glide:4.15.1")
     kapt("com.github.bumptech.glide:compiler:4.15.1")
+    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
 
 }

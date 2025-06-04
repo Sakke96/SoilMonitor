@@ -1,9 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<GridLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/moistureGrid"
+<androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/swipeRefreshLayout"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:padding="16dp">
+    android:layout_height="match_parent">
+
+    <GridLayout
+        android:id="@+id/moistureGrid"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="16dp">
 
     <!-- Plant 1 -->
     <FrameLayout
@@ -481,4 +487,5 @@
                 android:elevation="4dp" />
         </LinearLayout>
     </FrameLayout>
-</GridLayout>
+    </GridLayout>
+</androidx.swiperefreshlayout.widget.SwipeRefreshLayout>

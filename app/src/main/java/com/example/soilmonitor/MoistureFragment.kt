@@ -14,6 +14,7 @@ import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.GridLayout
 import android.widget.TextView
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -35,6 +36,7 @@ class MoistureFragment : Fragment() {
     private val ALERT_INTERVAL_MS = 2 * 60 * 60 * 1_000L // 2 hours
 
     /* ---- UI + prefs ------------------------------------------------- */
+    private lateinit var swipeRefresh: SwipeRefreshLayout
     private lateinit var waveViews: List<WaveView>
     private lateinit var valueTexts: List<TextView>
     private lateinit var dryHitTexts: List<TextView>
@@ -70,6 +72,8 @@ class MoistureFragment : Fragment() {
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
         val root = inflater.inflate(R.layout.fragment_moisture, container, false)
+        swipeRefresh = root.findViewById(R.id.swipeRefreshLayout)
+        swipeRefresh.setOnRefreshListener { fetchLatestMoisture() }
 
         val plantCount = prefs.getInt("plantCount", 4).coerceIn(1, 9)
 
@@ -170,16 +174,20 @@ class MoistureFragment : Fragment() {
                 .url("https://g2f12813f9dfc61-garden.adb.eu-paris-1.oraclecloudapps.com/ords/admin/log/log")
                 .build()
         ).enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) { /* ignore */ }
+            override fun onFailure(call: Call, e: IOException) {
+                activity?.runOnUiThread { swipeRefresh.isRefreshing = false }
+            }
 
             override fun onResponse(call: Call, response: Response) {
                 response.body?.string()?.let { body ->
                     val arr = JSONObject(body).getJSONArray("items")
                     history = List(arr.length()) { i -> arr.getJSONObject(i) }
-                    if (history.isEmpty()) return
-
-                    val latest = history.last()
+                    val latest = history.lastOrNull() ?: run {
+                        activity?.runOnUiThread { swipeRefresh.isRefreshing = false }
+                        return
+                    }
                     activity?.runOnUiThread {
+                        swipeRefresh.isRefreshing = false
                         sensorKeys.forEachIndexed { i, key ->
                             val raw = latest.optDouble(key, -1.0).toFloat()
                             if (raw < 0) return@forEachIndexed
