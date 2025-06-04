@@ -17,10 +17,25 @@
             android:layout_marginBottom="16dp" />
 
         <!-- sensor switches -->
-        <LinearLayout
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:layout_marginBottom="16dp"
+            app:cardElevation="2dp"
+            app:cardCornerRadius="8dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="12dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Sensors"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="8dp" />
 
             <com.google.android.material.switchmaterial.SwitchMaterial
                 android:id="@+id/switchTemp"
@@ -57,39 +72,61 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="TC" />
-        </LinearLayout>
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
         <!-- ✨ new options (default states match plant view) -->
-        <com.google.android.material.checkbox.MaterialCheckBox
-            android:id="@+id/checkHideNight"
-            android:layout_width="wrap_content"
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:text="Hide 00:00 – 06:00"
-            android:checked="true" />
+            app:cardElevation="2dp"
+            app:cardCornerRadius="8dp">
 
-        <com.google.android.material.checkbox.MaterialCheckBox
-            android:id="@+id/checkHideSeparator"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="Hide day separators" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="12dp">
 
-        <com.google.android.material.checkbox.MaterialCheckBox
-            android:id="@+id/checkLast24h"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="24 h only"
-            android:checked="true" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Display options"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="8dp" />
 
-        <com.google.android.material.checkbox.MaterialCheckBox
-            android:id="@+id/checkBridgeGaps"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="Bridge missing 10-min gaps"
-            android:checked="true" />
+                <com.google.android.material.checkbox.MaterialCheckBox
+                    android:id="@+id/checkHideNight"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Hide 00:00 – 06:00"
+                    android:checked="true" />
+
+                <com.google.android.material.checkbox.MaterialCheckBox
+                    android:id="@+id/checkHideSeparator"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="Hide day separators" />
+
+                <com.google.android.material.checkbox.MaterialCheckBox
+                    android:id="@+id/checkLast24h"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="24 h only"
+                    android:checked="true" />
+
+                <com.google.android.material.checkbox.MaterialCheckBox
+                    android:id="@+id/checkBridgeGaps"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="Bridge missing 10-min gaps"
+                    android:checked="true" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
     </LinearLayout>
 </ScrollView>
