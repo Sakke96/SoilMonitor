@@ -148,7 +148,7 @@ class MoistureFragment : Fragment() {
                     .commit()
                 activity?.findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(
                     R.id.bottomNavigation
-                )?.selectedItemId = R.id.nav_graph
+                )?.menu?.findItem(R.id.nav_graph)?.isChecked = true
             }
         }
 
