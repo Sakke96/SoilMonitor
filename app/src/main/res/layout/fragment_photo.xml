@@ -7,7 +7,7 @@
     android:orientation="vertical"
     android:padding="16dp">
 
-    <!-- Top row: “LIVE”, “1 DAY” and “7 DAYS” -->
+    <!-- Top row: “LIVE” and “TIMELAPSE” -->
     <LinearLayout
         android:id="@+id/button_row"
         android:layout_width="match_parent"
@@ -25,21 +25,29 @@
             android:layout_marginEnd="8dp" />
 
         <Button
-            android:id="@+id/btnOneDay"
+            android:id="@+id/btnTimelapse"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="1 DAY"
-            android:layout_weight="1"
-            android:layout_marginHorizontal="8dp" />
-
-        <Button
-            android:id="@+id/btnSevenDays"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:text="7 DAYS"
+            android:text="TIMELAPSE"
             android:layout_weight="1"
             android:layout_marginStart="8dp" />
     </LinearLayout>
+
+    <!-- Timelapse range inputs -->
+    <EditText
+        android:id="@+id/editFrom"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="From (yyyy-MM-dd HH:mm)"
+        android:inputType="datetime" />
+
+    <EditText
+        android:id="@+id/editTo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="To (yyyy-MM-dd HH:mm)"
+        android:inputType="datetime"
+        android:layout_marginBottom="12dp" />
 
     <!-- ProgressBar (visible while loading) -->
     <ProgressBar
@@ -71,6 +79,13 @@
         android:gravity="center"
         android:paddingTop="8dp"
         android:paddingBottom="8dp" />
+
+    <!-- Time slider for live view -->
+    <SeekBar
+        android:id="@+id/seekBarTime"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:visibility="gone" />
 
     <!-- FPS slider row: label + SeekBar -->
     <LinearLayout
