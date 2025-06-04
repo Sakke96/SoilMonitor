@@ -135,17 +135,20 @@ class MoistureFragment : Fragment() {
                     plantIndex = idx,
                     hideNight   = true,
                     hideSep     = false,
-                    last24h     = false,
+                    viewMode    = SensorFragment.MODE_LAST_DIP,
                     bridge      = true,
                     showTrend   = true
                 )
                 parentFragmentManager.beginTransaction()
                     .replace(
-                        R.id.fragment_container,   // your activity’s fragment container
+                        R.id.fragment_container,
                         sensorFrag
                     )
                     .addToBackStack(null)
                     .commit()
+                activity?.findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(
+                    R.id.bottomNavigation
+                )?.menu?.findItem(R.id.nav_graph)?.isChecked = true
             }
         }
 
@@ -250,7 +253,14 @@ class MoistureFragment : Fragment() {
 
         /* 3) identical slope math as in SensorFragment */
         val values = entries.map { it.second.second }
-        val sIdx = values.indexOfLast { it <= wet }.let { if (it == -1) 0 else it }
+        val stableCount = 3
+        var sIdx = values.indexOfFirst { it <= wet }.let { if (it == -1) 0 else it }
+        for (i in 1 until values.size - stableCount) {
+            if (values[i - 1] > wet && (0 until stableCount).all { j -> values[i + j] <= wet }) {
+                sIdx = i
+                break
+            }
+        }
 
         val startX = entries[sIdx].first.toFloat()
         val startY = entries[sIdx].second.second
