@@ -539,11 +539,12 @@ class SensorFragment : Fragment() {
         /* Trend‐to‐dry line */
         if (trendBox.isChecked && selectedSensorIndex != 0 && entries.size >= 2) {
             val stableCount = 3
-            var sIdx = entries.indexOfLast { it.y <= wet }.let { if (it == -1) 0 else it }
+            var sIdx = entries.indexOfFirst { it.y <= wet }.let { if (it == -1) 0 else it }
             for (i in 1 until entries.size - stableCount) {
                 if (entries[i - 1].y > wet &&
                     (0 until stableCount).all { j -> entries[i + j].y <= wet }) {
                     sIdx = i
+                    break
                 }
             }
             val start = entries[sIdx]
