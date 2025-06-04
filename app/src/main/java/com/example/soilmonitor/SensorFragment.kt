@@ -53,7 +53,7 @@ class SensorFragment : Fragment() {
 
     /* ---------- static meta ---------- */
     private lateinit var sensorKeys: List<String>   // e.g. "sensor_u0" … "sensor_uN"
-    private lateinit var sensorLabels: List<String> // "All Sensors", "Plant 1", "Plant 2", …
+    private lateinit var sensorLabels: List<String> // "All", "1", "2", …
     private lateinit var dryVals: List<Float>
     private lateinit var wetVals: List<Float>
 
@@ -66,7 +66,7 @@ class SensorFragment : Fragment() {
     )
 
     /* ---------- selection state ---------- */
-    private var selectedSensorIndex = 0   // 0 = "All Sensors", 1 = "Plant 1", etc.
+    private var selectedSensorIndex = 0   // 0 = "All", 1 = "1", etc.
     private val sensorButtons = mutableListOf<Button>()
 
     /* ---------- polling ---------- */
@@ -148,7 +148,8 @@ class SensorFragment : Fragment() {
         /* ---- sensor meta from prefs ---- */
         val plants = prefs.getInt("plantCount", 4)
         sensorKeys   = List(plants) { i -> "sensor_u${i}" }
-        sensorLabels = listOf("All") + List(plants) { i -> "Plant ${i + 1}" }
+        // Display simple numeric labels instead of "Plant N" for the selector
+        sensorLabels = listOf("All") + List(plants) { i -> "${i + 1}" }
         dryVals      = List(plants) { i -> prefs.getFloat("plant_${i + 1}_dry", 400f) }
         wetVals      = List(plants) { i -> prefs.getFloat("plant_${i + 1}_wet", 350f) }
 
