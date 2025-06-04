@@ -6,7 +6,8 @@ import android.preference.PreferenceManager
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
+import com.google.android.material.button.MaterialButton
+import com.google.android.material.textfield.TextInputEditText
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.NumberPicker
@@ -22,14 +23,14 @@ import java.io.IOException
 class SettingsFragment : Fragment() {
 
     private lateinit var switchNotifications: SwitchMaterial
-    private lateinit var editRefreshInterval: EditText
+    private lateinit var editRefreshInterval: TextInputEditText
     private lateinit var numberPickerPlants: NumberPicker
     private lateinit var containerThresholds: LinearLayout
     private lateinit var switchGridlines: SwitchMaterial
     private lateinit var spinnerTempUnit: Spinner
     private lateinit var switchDebugMode: SwitchMaterial
-    private lateinit var buttonClearCache: Button
-    private lateinit var buttonDecimate: Button
+    private lateinit var buttonClearCache: MaterialButton
+    private lateinit var buttonDecimate: MaterialButton
     private lateinit var prefs: SharedPreferences
 
     // OkHttp client shared:

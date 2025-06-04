@@ -16,7 +16,7 @@
         android:gravity="center"
         android:layout_marginBottom="12dp">
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnLive"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -24,7 +24,7 @@
             android:layout_weight="1"
             android:layout_marginEnd="8dp" />
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnTimelapse"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -34,13 +34,13 @@
     </LinearLayout>
 
     <!-- Timelapse range buttons (open date/time pickers) -->
-    <Button
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/btnFrom"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="From" />
 
-    <Button
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/btnTo"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

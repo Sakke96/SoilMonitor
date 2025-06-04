@@ -22,37 +22,37 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <Switch
+            <com.google.android.material.switchmaterial.SwitchMaterial
                 android:id="@+id/switchTemp"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Temperature" />
 
-            <Switch
+            <com.google.android.material.switchmaterial.SwitchMaterial
                 android:id="@+id/switchHumidity"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Humidity" />
 
-            <Switch
+            <com.google.android.material.switchmaterial.SwitchMaterial
                 android:id="@+id/switchCO2"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="CO₂" />
 
-            <Switch
+            <com.google.android.material.switchmaterial.SwitchMaterial
                 android:id="@+id/switchPH"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="pH" />
 
-            <Switch
+            <com.google.android.material.switchmaterial.SwitchMaterial
                 android:id="@+id/switchPPM"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="PPM" />
 
-            <Switch
+            <com.google.android.material.switchmaterial.SwitchMaterial
                 android:id="@+id/switchTC"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -60,7 +60,7 @@
         </LinearLayout>
 
         <!-- ✨ new options (default states match plant view) -->
-        <CheckBox
+        <com.google.android.material.checkbox.MaterialCheckBox
             android:id="@+id/checkHideNight"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -68,14 +68,14 @@
             android:text="Hide 00:00 – 06:00"
             android:checked="true" />
 
-        <CheckBox
+        <com.google.android.material.checkbox.MaterialCheckBox
             android:id="@+id/checkHideSeparator"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:text="Hide day separators" />
 
-        <CheckBox
+        <com.google.android.material.checkbox.MaterialCheckBox
             android:id="@+id/checkLast24h"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -83,7 +83,7 @@
             android:text="24 h only"
             android:checked="true" />
 
-        <CheckBox
+        <com.google.android.material.checkbox.MaterialCheckBox
             android:id="@+id/checkBridgeGaps"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

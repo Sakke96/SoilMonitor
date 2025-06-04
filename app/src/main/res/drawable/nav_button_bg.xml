@@ -4,7 +4,7 @@
     <item android:state_selected="true">
         <shape android:shape="oval">
             <!-- Vervang @color/colorPrimary eventueel door een bestaande kleur in jouw project -->
-            <solid android:color="?attr/colorPrimary"/>
+            <solid android:color="@color/colorPrimary"/>
         </shape>
     </item>
 

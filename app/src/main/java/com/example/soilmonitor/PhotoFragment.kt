@@ -7,7 +7,7 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
+import com.google.android.material.button.MaterialButton
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
 import android.widget.ImageView
@@ -32,13 +32,13 @@ import java.util.*
 
 class PhotoFragment : Fragment() {
 
-    private lateinit var btnTimelapse: Button
-    private lateinit var btnLive: Button
+    private lateinit var btnTimelapse: MaterialButton
+    private lateinit var btnLive: MaterialButton
     private lateinit var progressBar: ProgressBar
     private lateinit var gifView: ImageView
     private lateinit var tvTimestamp: TextView
-    private lateinit var btnFrom: Button
-    private lateinit var btnTo: Button
+    private lateinit var btnFrom: MaterialButton
+    private lateinit var btnTo: MaterialButton
     private lateinit var seekBarTime: SeekBar
 
     // Slider components

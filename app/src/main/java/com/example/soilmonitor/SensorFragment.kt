@@ -11,10 +11,10 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
-import android.widget.CheckBox
 import android.widget.CompoundButton
 import android.widget.LinearLayout
-import android.widget.RadioButton
+import com.google.android.material.checkbox.MaterialCheckBox
+import com.google.android.material.radiobutton.MaterialRadioButton
 import android.widget.RadioGroup
 import android.widget.TextView
 import androidx.fragment.app.Fragment
@@ -42,14 +42,14 @@ class SensorFragment : Fragment() {
     /* ---------- UI ---------- */
     private lateinit var chart: LineChart
     private lateinit var sensorLayout: LinearLayout         // container for equally‐weighted Buttons
-    private lateinit var hideNightBox: CheckBox
-    private lateinit var hideSepBox: CheckBox
+    private lateinit var hideNightBox: MaterialCheckBox
+    private lateinit var hideSepBox: MaterialCheckBox
     private lateinit var rangeGroup: RadioGroup
-    private lateinit var range24hRadio: RadioButton
-    private lateinit var rangeLastDipRadio: RadioButton
-    private lateinit var rangeAllRadio: RadioButton
-    private lateinit var bridgeBox: CheckBox
-    private lateinit var trendBox: CheckBox
+    private lateinit var range24hRadio: MaterialRadioButton
+    private lateinit var rangeLastDipRadio: MaterialRadioButton
+    private lateinit var rangeAllRadio: MaterialRadioButton
+    private lateinit var bridgeBox: MaterialCheckBox
+    private lateinit var trendBox: MaterialCheckBox
     private lateinit var predictionTxt: TextView
 
     /* ---------- prefs / raw data ---------- */

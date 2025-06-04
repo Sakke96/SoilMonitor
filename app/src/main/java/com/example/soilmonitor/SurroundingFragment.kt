@@ -6,8 +6,8 @@ import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.CheckBox
-import android.widget.Switch
+import com.google.android.material.checkbox.MaterialCheckBox
+import com.google.android.material.switchmaterial.SwitchMaterial
 import androidx.fragment.app.Fragment
 import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.components.LimitLine
@@ -30,18 +30,18 @@ class SurroundingFragment : Fragment() {
 
     /* ---------- UI ---------- */
     private lateinit var surroundingChart: LineChart
-    private lateinit var switchTemp: Switch
-    private lateinit var switchHumidity: Switch
-    private lateinit var switchCO2: Switch
-    private lateinit var switchPH: Switch
-    private lateinit var switchPPM: Switch
-    private lateinit var switchTC: Switch
+    private lateinit var switchTemp: SwitchMaterial
+    private lateinit var switchHumidity: SwitchMaterial
+    private lateinit var switchCO2: SwitchMaterial
+    private lateinit var switchPH: SwitchMaterial
+    private lateinit var switchPPM: SwitchMaterial
+    private lateinit var switchTC: SwitchMaterial
 
     // check-boxes
-    private lateinit var hideNightCheckBox: CheckBox
-    private lateinit var hideSeparatorCheckBox: CheckBox
-    private lateinit var last24hCheckBox: CheckBox
-    private lateinit var bridgeGapsCheckBox: CheckBox
+    private lateinit var hideNightCheckBox: MaterialCheckBox
+    private lateinit var hideSeparatorCheckBox: MaterialCheckBox
+    private lateinit var last24hCheckBox: MaterialCheckBox
+    private lateinit var bridgeGapsCheckBox: MaterialCheckBox
 
     /* ---------- data ---------- */
     private var dataList: List<JSONObject> = emptyList()
@@ -104,8 +104,8 @@ class SurroundingFragment : Fragment() {
             hideNightCheckBox, hideSeparatorCheckBox, last24hCheckBox, bridgeGapsCheckBox
         ).forEach { v ->
             when (v) {
-                is Switch   -> v.setOnCheckedChangeListener(rerender)
-                is CheckBox -> v.setOnCheckedChangeListener(rerender)
+                is SwitchMaterial   -> v.setOnCheckedChangeListener(rerender)
+                is MaterialCheckBox -> v.setOnCheckedChangeListener(rerender)
             }
         }
 

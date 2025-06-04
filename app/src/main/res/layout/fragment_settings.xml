@@ -10,111 +10,148 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-        <!-- Algemeen -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Algemene instellingen"
-            android:textStyle="bold"
-            android:textSize="18sp"
-            android:layout_marginBottom="8dp"/>
-
-        <com.google.android.material.switchmaterial.SwitchMaterial
-            android:id="@+id/switch_notifications"
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Notificaties aan/uit"
-            android:layout_marginBottom="16dp"/>
+            android:layout_marginBottom="16dp"
+            app:cardElevation="4dp"
+            app:cardCornerRadius="8dp">
 
-        <EditText
-            android:id="@+id/edit_refresh_interval"
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Algemene instellingen"
+                    android:textStyle="bold"
+                    android:textSize="18sp"
+                    android:layout_marginBottom="8dp"/>
+
+                <com.google.android.material.switchmaterial.SwitchMaterial
+                    android:id="@+id/switch_notifications"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Notificaties aan/uit"
+                    android:layout_marginBottom="16dp"/>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Refresh-interval (minuten)"
+                    android:layout_marginBottom="24dp">
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/edit_refresh_interval"
+                        android:inputType="number"/>
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <TextView
+                    android:id="@+id/text_plants_count_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Aantal planten (1-9)"
+                    android:layout_marginBottom="4dp"/>
+
+                <NumberPicker
+                    android:id="@+id/number_picker_plants"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="24dp" />
+
+                <LinearLayout
+                    android:id="@+id/container_thresholds"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginBottom="8dp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Refresh-interval (minuten)"
-            android:inputType="number"
-            android:layout_marginBottom="24dp"/>
+            android:layout_marginBottom="16dp"
+            app:cardElevation="4dp"
+            app:cardCornerRadius="8dp">
 
-        <!-- Aantal planten -->
-        <TextView
-            android:id="@+id/text_plants_count_label"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Aantal planten (1-9)"
-            android:layout_marginBottom="4dp"/>
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
 
-        <NumberPicker
-            android:id="@+id/number_picker_plants"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="24dp" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Weergave-opties"
+                    android:textStyle="bold"
+                    android:textSize="18sp"
+                    android:layout_marginBottom="8dp"/>
 
-        <!-- Dynamische droog/nat waarden -->
-        <LinearLayout
-            android:id="@+id/container_thresholds"
+                <com.google.android.material.switchmaterial.SwitchMaterial
+                    android:id="@+id/switch_gridlines"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Rasterlijnen tonen"
+                    android:layout_marginBottom="16dp"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Temperatuureenheid"
+                    android:layout_marginBottom="4dp"/>
+
+                <Spinner
+                    android:id="@+id/spinner_temp_unit"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:entries="@array/temp_units"/>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:layout_marginBottom="24dp" />
+            app:cardElevation="4dp"
+            app:cardCornerRadius="8dp">
 
-        <!-- Weergave -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Weergave-opties"
-            android:textStyle="bold"
-            android:textSize="18sp"
-            android:layout_marginBottom="8dp"/>
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
 
-        <com.google.android.material.switchmaterial.SwitchMaterial
-            android:id="@+id/switch_gridlines"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Rasterlijnen tonen"
-            android:layout_marginBottom="16dp"/>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Geavanceerd / Debug"
+                    android:textStyle="bold"
+                    android:textSize="18sp"
+                    android:layout_marginBottom="8dp"/>
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Temperatuureenheid"
-            android:layout_marginBottom="4dp"/>
+                <com.google.android.material.switchmaterial.SwitchMaterial
+                    android:id="@+id/switch_debug_mode"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Debug-modus"
+                    android:layout_marginBottom="16dp"/>
 
-        <Spinner
-            android:id="@+id/spinner_temp_unit"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:entries="@array/temp_units"
-            android:layout_marginBottom="24dp"/>
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/button_clear_cache"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Cache legen"/>
 
-        <!-- Geavanceerd -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Geavanceerd / Debug"
-            android:textStyle="bold"
-            android:textSize="18sp"
-            android:layout_marginBottom="8dp"/>
-
-        <com.google.android.material.switchmaterial.SwitchMaterial
-            android:id="@+id/switch_debug_mode"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Debug-modus"
-            android:layout_marginBottom="16dp"/>
-
-        <Button
-            android:id="@+id/button_clear_cache"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Cache legen"/>
-
-        <!-- NEW: Decimate button -->
-        <Button
-            android:id="@+id/button_decimate"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Decimate"
-            android:layout_marginBottom="24dp"/>
-
-
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/button_decimate"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Decimate"
+                    android:layout_marginTop="8dp"/>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
     </LinearLayout>
 </ScrollView>
