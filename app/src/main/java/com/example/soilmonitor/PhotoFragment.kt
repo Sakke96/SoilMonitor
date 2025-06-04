@@ -331,7 +331,8 @@ class PhotoFragment : Fragment() {
         val matches = regex.findAll(html).toList()
         if (matches.isEmpty()) return null
 
-        val remoteNames = matches.map { it.groupValues[1] }.sorted()
+        val remoteNames = matches.map { it.groupValues[1] }
+            .sortedBy { it.substringBefore('.').toIntOrNull() ?: 0 }
 
         val localNames = localDir.listFiles { f -> f.extension.equals("jpg", true) }?.map { it.name } ?: emptyList()
         if (localNames.size < remoteNames.size) {
@@ -342,6 +343,7 @@ class PhotoFragment : Fragment() {
         }
 
         liveFiles = remoteNames.map { File(localDir, it) }
+            .sortedBy { it.lastModified() }
 
         val latestFile = liveFiles.lastOrNull() ?: return null
         val bmp = BitmapFactory.decodeFile(latestFile.absolutePath) ?: return null
