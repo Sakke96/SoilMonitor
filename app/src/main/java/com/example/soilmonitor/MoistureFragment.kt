@@ -148,7 +148,7 @@ class MoistureFragment : Fragment() {
                     .commit()
                 activity?.findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(
                     R.id.bottomNavigation
-                )?.menu?.findItem(R.id.nav_graph)?.isChecked = true
+                )?.selectedItemId = R.id.nav_graph
             }
         }
 
@@ -254,10 +254,11 @@ class MoistureFragment : Fragment() {
         /* 3) identical slope math as in SensorFragment */
         val values = entries.map { it.second.second }
         val stableCount = 3
-        var sIdx = values.indexOfLast { it <= wet }.let { if (it == -1) 0 else it }
+        var sIdx = values.indexOfFirst { it <= wet }.let { if (it == -1) 0 else it }
         for (i in 1 until values.size - stableCount) {
             if (values[i - 1] > wet && (0 until stableCount).all { j -> values[i + j] <= wet }) {
                 sIdx = i
+                break
             }
         }
 
