@@ -135,7 +135,7 @@ class MoistureFragment : Fragment() {
                     plantIndex = idx,
                     hideNight   = true,
                     hideSep     = false,
-                    last24h     = false,
+                    viewMode    = SensorFragment.MODE_LAST_DIP,
                     bridge      = true,
                     showTrend   = true
                 )
