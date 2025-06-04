@@ -13,6 +13,7 @@ import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.SeekBar
 import android.widget.TextView
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
@@ -87,9 +88,21 @@ class PhotoFragment : Fragment() {
 
         btnTimelapse.setOnClickListener {
             stopLiveMode()
-            val from = sdfInput.parse(editFrom.text.toString())
-            val to = sdfInput.parse(editTo.text.toString())
-            if (from != null && to != null && !from.after(to)) {
+
+            val fromStr = editFrom.text.toString().trim()
+            val toStr = editTo.text.toString().trim()
+
+            if (fromStr.isBlank() || toStr.isBlank()) {
+                Toast.makeText(requireContext(), "Enter from/to date", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            val from = runCatching { sdfInput.parse(fromStr) }.getOrNull()
+            val to = runCatching { sdfInput.parse(toStr) }.getOrNull()
+
+            if (from == null || to == null || from.after(to)) {
+                Toast.makeText(requireContext(), "Invalid date range", Toast.LENGTH_SHORT).show()
+            } else {
                 startTimelapseMode(from, to)
             }
         }
