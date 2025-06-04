@@ -14,6 +14,8 @@ import android.widget.Button
 import android.widget.CheckBox
 import android.widget.CompoundButton
 import android.widget.LinearLayout
+import android.widget.RadioButton
+import android.widget.RadioGroup
 import android.widget.TextView
 import androidx.fragment.app.Fragment
 import com.github.mikephil.charting.charts.LineChart
@@ -42,7 +44,10 @@ class SensorFragment : Fragment() {
     private lateinit var sensorLayout: LinearLayout         // container for equally‐weighted Buttons
     private lateinit var hideNightBox: CheckBox
     private lateinit var hideSepBox: CheckBox
-    private lateinit var last24hBox: CheckBox
+    private lateinit var rangeGroup: RadioGroup
+    private lateinit var range24hRadio: RadioButton
+    private lateinit var rangeLastDipRadio: RadioButton
+    private lateinit var rangeAllRadio: RadioButton
     private lateinit var bridgeBox: CheckBox
     private lateinit var trendBox: CheckBox
     private lateinit var predictionTxt: TextView
@@ -85,9 +90,13 @@ class SensorFragment : Fragment() {
         private const val ARG_PLANT_INDEX = "argPlantIndex"
         private const val ARG_HIDE_NIGHT   = "argHideNight"
         private const val ARG_HIDE_SEP     = "argHideSep"
-        private const val ARG_LAST24H      = "argLast24h"
+        private const val ARG_VIEW_MODE    = "argViewMode"
         private const val ARG_BRIDGE       = "argBridge"
         private const val ARG_SHOW_TREND   = "argShowTrend"
+
+        const val MODE_ALL = 0
+        const val MODE_24H = 1
+        const val MODE_LAST_DIP = 2
 
         /**
          * Create a SensorFragment pre-configured to display exactly this plant,
@@ -96,7 +105,7 @@ class SensorFragment : Fragment() {
          * @param plantIndex  zero-based index (0 → Plant 1, 1 → Plant 2, etc.)
          * @param hideNight   true = hide 00:00–06:00
          * @param hideSep     true = hide day separators
-         * @param last24h     true = show only last 24 h
+         * @param viewMode    MODE_* constant for time range
          * @param bridge      true = bridge missing 10-min gaps
          * @param showTrend   true = show the trend line
          */
@@ -105,7 +114,7 @@ class SensorFragment : Fragment() {
             plantIndex: Int,
             hideNight: Boolean,
             hideSep: Boolean,
-            last24h: Boolean,
+            viewMode: Int,
             bridge: Boolean,
             showTrend: Boolean
         ): SensorFragment {
@@ -114,7 +123,7 @@ class SensorFragment : Fragment() {
             args.putInt(ARG_PLANT_INDEX, plantIndex)
             args.putBoolean(ARG_HIDE_NIGHT, hideNight)
             args.putBoolean(ARG_HIDE_SEP, hideSep)
-            args.putBoolean(ARG_LAST24H, last24h)
+            args.putInt(ARG_VIEW_MODE, viewMode)
             args.putBoolean(ARG_BRIDGE, bridge)
             args.putBoolean(ARG_SHOW_TREND, showTrend)
             frag.arguments = args
@@ -140,7 +149,10 @@ class SensorFragment : Fragment() {
         sensorLayout  = view.findViewById(R.id.sensorLayout)      // NEW: equal‐width button container
         hideNightBox  = view.findViewById(R.id.hideNightCheckBox)
         hideSepBox    = view.findViewById(R.id.hideSeparatorCheckBox)
-        last24hBox    = view.findViewById(R.id.last24hCheckBox)
+        rangeGroup    = view.findViewById(R.id.rangeRadioGroup)
+        range24hRadio = view.findViewById(R.id.range24hRadio)
+        rangeLastDipRadio = view.findViewById(R.id.rangeLastDipRadio)
+        rangeAllRadio = view.findViewById(R.id.rangeAllRadio)
         bridgeBox     = view.findViewById(R.id.bridgeGapsCheckBox)
         trendBox      = view.findViewById(R.id.trendLineCheckBox)
         predictionTxt = view.findViewById(R.id.trendPredictionText)
@@ -225,7 +237,11 @@ class SensorFragment : Fragment() {
 
             hideNightBox.isChecked  = args.getBoolean(ARG_HIDE_NIGHT, false)
             hideSepBox.isChecked    = args.getBoolean(ARG_HIDE_SEP, false)
-            last24hBox.isChecked    = args.getBoolean(ARG_LAST24H, false)
+            when (args.getInt(ARG_VIEW_MODE, MODE_ALL)) {
+                MODE_24H -> range24hRadio.isChecked = true
+                MODE_LAST_DIP -> rangeLastDipRadio.isChecked = true
+                else -> rangeAllRadio.isChecked = true
+            }
             bridgeBox.isChecked     = args.getBoolean(ARG_BRIDGE, false)
             trendBox.isChecked      = args.getBoolean(ARG_SHOW_TREND, false)
         }
@@ -234,7 +250,7 @@ class SensorFragment : Fragment() {
         val listener = CompoundButton.OnCheckedChangeListener { _, _ -> redraw() }
         hideNightBox.setOnCheckedChangeListener(listener)
         hideSepBox.setOnCheckedChangeListener(listener)
-        last24hBox.setOnCheckedChangeListener(listener)
+        rangeGroup.setOnCheckedChangeListener { _, _ -> redraw() }
         bridgeBox.setOnCheckedChangeListener(listener)
         trendBox.setOnCheckedChangeListener(listener)
 
@@ -280,14 +296,22 @@ class SensorFragment : Fragment() {
         /* ---- read toggles ---- */
         val hideNight   = hideNightBox.isChecked
         val hideSep     = hideSepBox.isChecked
-        val last24hOnly = last24hBox.isChecked
+        val viewMode = when {
+            range24hRadio.isChecked -> MODE_24H
+            rangeLastDipRadio.isChecked -> MODE_LAST_DIP
+            else -> MODE_ALL
+        }
         val bridge      = bridgeBox.isChecked
         // only show trend if a single plant is chosen (i.e. selectedSensorIndex ≠ 0)
         val showTrend   = trendBox.isChecked && selectedSensorIndex != 0
 
         /* ---- helpers ---- */
         val now    = OffsetDateTime.now().plusHours(2)
-        val cutoff = now.minusHours(24)
+        val cutoff = when (viewMode) {
+            MODE_24H -> now.minusHours(24)
+            MODE_LAST_DIP -> computeLastDipCutoff()
+            else -> null
+        }
         val tFmt   = DateTimeFormatter.ofPattern("HH:mm")
         val dFmt   = DateTimeFormatter.ofPattern("dd MMM")
 
@@ -310,7 +334,7 @@ class SensorFragment : Fragment() {
             val perSensor = sensorKeys.associateWith { mutableListOf<Pair<OffsetDateTime, Float>>() }
             dataList.forEach { obj ->
                 val ts = OffsetDateTime.parse(obj.getString("created_at")).plusHours(2)
-                if (last24hOnly && ts.isBefore(cutoff)) return@forEach
+                if (cutoff != null && ts.isBefore(cutoff)) return@forEach
                 if (hideNight && ts.hour < 6) return@forEach
                 sensorKeys.forEach { k ->
                     val v = obj.optInt(k, -1)
@@ -326,7 +350,7 @@ class SensorFragment : Fragment() {
 
                 dataList.forEachIndexed { i, obj ->
                     val ts = OffsetDateTime.parse(obj.getString("created_at")).plusHours(2)
-                    if (last24hOnly && ts.isBefore(cutoff)) return@forEachIndexed
+                    if (cutoff != null && ts.isBefore(cutoff)) return@forEachIndexed
                     if (hideNight && ts.hour < 6) return@forEachIndexed
 
                     if (!hideSep && ts.toLocalDate() != lastDay) {
@@ -386,7 +410,7 @@ class SensorFragment : Fragment() {
 
             while (!slot.isAfter(lastSlot)) {
                 val keep = !(hideNight && slot.hour < 6) &&
-                        !(last24hOnly && slot.isBefore(cutoff))
+                        !(cutoff != null && slot.isBefore(cutoff))
                 if (keep) {
                     if (!hideSep && slot.toLocalDate() != lastDay) {
                         xAxis.addLimitLine(
@@ -440,7 +464,7 @@ class SensorFragment : Fragment() {
 
         val raw = dataList.mapNotNull { obj ->
             val ts = OffsetDateTime.parse(obj.getString("created_at")).plusHours(2)
-            if (last24hOnly && ts.isBefore(cutoff)) return@mapNotNull null
+            if (cutoff != null && ts.isBefore(cutoff)) return@mapNotNull null
             if (hideNight && ts.hour < 6) return@mapNotNull null
             val v = obj.optInt(key, -1).takeIf { it >= 0 } ?: return@mapNotNull null
             ts to v.toFloat()
@@ -462,7 +486,7 @@ class SensorFragment : Fragment() {
             var pos = 0
             while (!slot.isAfter(last)) {
                 val keep = !(hideNight && slot.hour < 6) &&
-                        !(last24hOnly && slot.isBefore(cutoff))
+                        !(cutoff != null && slot.isBefore(cutoff))
                 if (keep) {
                     if (!hideSep && slot.toLocalDate() != lastDay) {
                         xAxis.addLimitLine(
@@ -514,7 +538,15 @@ class SensorFragment : Fragment() {
 
         /* Trend‐to‐dry line */
         if (trendBox.isChecked && selectedSensorIndex != 0 && entries.size >= 2) {
-            val sIdx = entries.indexOfLast { it.y <= wet }.let { if (it == -1) 0 else it }
+            val stableCount = 3
+            var sIdx = entries.indexOfFirst { it.y <= wet }.let { if (it == -1) 0 else it }
+            for (i in 1 until entries.size - stableCount) {
+                if (entries[i - 1].y > wet &&
+                    (0 until stableCount).all { j -> entries[i + j].y <= wet }) {
+                    sIdx = i
+                    break
+                }
+            }
             val start = entries[sIdx]
             val end = entries.last()
             val dx = end.x - start.x
@@ -544,6 +576,60 @@ class SensorFragment : Fragment() {
         chart.data = LineData(dataSets)
         xAxis.valueFormatter = IndexAxisValueFormatter(labels)
         finishChart()
+    }
+
+    /**
+     * Determine the timestamp of the lowest point of the most recent dip below
+     * the wet threshold within the last five days. The dip is considered to
+     * start once values drop below `wet` for several consecutive readings and
+     * the returned timestamp corresponds to the minimum of that dip.
+     */
+    private fun computeLastDipCutoff(): OffsetDateTime {
+        val now = OffsetDateTime.now().plusHours(2)
+        val lookback = now.minusDays(5)
+        val stable = 3
+
+        fun dipFor(entries: List<Pair<OffsetDateTime, Float>>, wet: Float): OffsetDateTime? {
+            if (entries.size <= stable) return null
+            for (i in entries.size - stable downTo 1) {
+                val before = entries[i - 1].second
+                if (before > wet && (0 until stable).all { j -> entries[i + j].second <= wet }) {
+                    var minIdx = i
+                    var minVal = entries[i].second
+                    var k = i
+                    while (k < entries.size && entries[k].second <= wet) {
+                        val v = entries[k].second
+                        if (v <= minVal) { minVal = v; minIdx = k }
+                        k++
+                    }
+                    return entries[minIdx].first
+                }
+            }
+            return null
+        }
+
+        if (selectedSensorIndex == 0) {
+            var latest = lookback
+            sensorKeys.forEachIndexed { idx, key ->
+                val entries = dataList.mapNotNull { obj ->
+                    val ts = OffsetDateTime.parse(obj.getString("created_at")).plusHours(2)
+                    if (ts.isBefore(lookback)) return@mapNotNull null
+                    val v = obj.optInt(key, -1).takeIf { it >= 0 } ?: return@mapNotNull null
+                    ts to v.toFloat()
+                }.sortedBy { it.first }
+                dipFor(entries, wetVals[idx])?.let { if (it.isAfter(latest)) latest = it }
+            }
+            return latest
+        } else {
+            val key = sensorKeys[selectedSensorIndex - 1]
+            val entries = dataList.mapNotNull { obj ->
+                val ts = OffsetDateTime.parse(obj.getString("created_at")).plusHours(2)
+                if (ts.isBefore(lookback)) return@mapNotNull null
+                val v = obj.optInt(key, -1).takeIf { it >= 0 } ?: return@mapNotNull null
+                ts to v.toFloat()
+            }.sortedBy { it.first }
+            return dipFor(entries, wetVals[selectedSensorIndex - 1]) ?: lookback
+        }
     }
 
     /* =========================================================== */

@@ -126,7 +126,7 @@ class PhotoFragment : Fragment() {
         }
         btnLive.setOnClickListener {
             stopAnimationMode()
-            startLiveMode()
+            startLiveMode(fromDate, toDate)
         }
 
         // ──────────────────────────────────────────────────────────────────────────
@@ -170,7 +170,7 @@ class PhotoFragment : Fragment() {
         // ──────────────────────────────────────────────────────────────────────────
         // 2) Start Live mode by default on fragment creation
         // ──────────────────────────────────────────────────────────────────────────
-        startLiveMode()
+        startLiveMode(fromDate, toDate)
 
         return root
     }
@@ -267,7 +267,7 @@ class PhotoFragment : Fragment() {
     // ──────────────────────────────────────────────────────────────────────────────
     // 2) LIVE MODE → hide FPS slider and refresh the latest JPEG every 60s
     // ──────────────────────────────────────────────────────────────────────────────
-    private fun startLiveMode() {
+    private fun startLiveMode(from: Date, to: Date) {
         stopLiveMode()
         progressBar.visibility = View.VISIBLE
         tvTimestamp.text = "—"
@@ -279,7 +279,7 @@ class PhotoFragment : Fragment() {
 
         liveJob = lifecycleScope.launch(Dispatchers.IO) {
             while (isActive) {
-                val latestPair = fetchLatestPhoto()
+                val latestPair = fetchLatestPhotoRange(from, to)
                 withContext(Dispatchers.Main) {
                     progressBar.visibility = View.GONE
                     if (latestPair != null) {
@@ -320,11 +320,11 @@ class PhotoFragment : Fragment() {
     // 3) HELPERS: fetchLatestPhoto(), getDatesBetween(), downloadSmartForDate(), downloadFile(), fetchUrlAsString()
     // ──────────────────────────────────────────────────────────────────────────────
     private fun fetchLatestPhoto(): Pair<Bitmap, Long>? {
-        val dateStr = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
-        val localDir = File(requireContext().filesDir, "photos/$dateStr")
+        val nowStr = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
+        val localDir = File(requireContext().filesDir, "photos/$nowStr")
         if (!localDir.exists()) localDir.mkdirs()
 
-        val indexUrl = "$SERVER_BASE/data/$dateStr/"
+        val indexUrl = "$SERVER_BASE/data/$nowStr/"
         val html = fetchUrlAsString(indexUrl) ?: return null
 
         val regex = Regex("""href="(\d+\.jpg)"""")
@@ -349,6 +349,22 @@ class PhotoFragment : Fragment() {
         val bmp = BitmapFactory.decodeFile(latestFile.absolutePath) ?: return null
         val tsMillis = latestFile.lastModified()
         return Pair(bmp, tsMillis)
+    }
+
+    private fun fetchLatestPhotoRange(from: Date, to: Date): Pair<Bitmap, Long>? {
+        val dates = getDatesBetween(from, to)
+        val files = mutableListOf<File>()
+        for (date in dates) {
+            val daily = downloadSmartForDate(date)
+            files.addAll(daily.filter { f ->
+                val ts = f.lastModified()
+                ts in from.time..to.time
+            })
+        }
+        liveFiles = files.sortedBy { it.lastModified() }
+        val latestFile = liveFiles.lastOrNull() ?: return null
+        val bmp = BitmapFactory.decodeFile(latestFile.absolutePath) ?: return null
+        return Pair(bmp, latestFile.lastModified())
     }
 
     private fun getDatesBetween(from: Date, to: Date): List<String> {

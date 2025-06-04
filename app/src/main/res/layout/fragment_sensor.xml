@@ -47,13 +47,31 @@
         android:layout_marginTop="4dp"
         android:text="Hide day separators" />
 
-    <CheckBox
-        android:id="@+id/last24hCheckBox"
+    <RadioGroup
+        android:id="@+id/rangeRadioGroup"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:text="24 h only"
-        android:checked="true" />
+        android:orientation="horizontal"
+        android:layout_marginTop="4dp">
+
+        <RadioButton
+            android:id="@+id/range24hRadio"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="24 h" />
+
+        <RadioButton
+            android:id="@+id/rangeLastDipRadio"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="From last dip" />
+
+        <RadioButton
+            android:id="@+id/rangeAllRadio"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="All" />
+    </RadioGroup>
 
     <CheckBox
         android:id="@+id/bridgeGapsCheckBox"
