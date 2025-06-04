@@ -579,45 +579,57 @@ class SensorFragment : Fragment() {
     }
 
     /**
-     * Determine the timestamp of the latest lowest moisture value within the
-     * last five days for the currently selected view.
+     * Determine the timestamp of the lowest point of the most recent dip below
+     * the wet threshold within the last five days. The dip is considered to
+     * start once values drop below `wet` for several consecutive readings and
+     * the returned timestamp corresponds to the minimum of that dip.
      */
     private fun computeLastDipCutoff(): OffsetDateTime {
         val now = OffsetDateTime.now().plusHours(2)
         val lookback = now.minusDays(5)
-        var lowestTs = lookback
-        var lowestVal = Float.MAX_VALUE
+        val stable = 3
 
-        if (selectedSensorIndex == 0) {
-            dataList.forEach { obj ->
-                val ts = OffsetDateTime.parse(obj.getString("created_at")).plusHours(2)
-                if (ts.isBefore(lookback)) return@forEach
-                sensorKeys.forEach { k ->
-                    val v = obj.optInt(k, -1)
-                    if (v >= 0) {
-                        when {
-                            v < lowestVal -> { lowestVal = v.toFloat(); lowestTs = ts }
-                            v.toFloat() == lowestVal && ts.isAfter(lowestTs) -> lowestTs = ts
-                        }
+        fun dipFor(entries: List<Pair<OffsetDateTime, Float>>, wet: Float): OffsetDateTime? {
+            if (entries.size <= stable) return null
+            for (i in entries.size - stable downTo 1) {
+                val before = entries[i - 1].second
+                if (before > wet && (0 until stable).all { j -> entries[i + j].second <= wet }) {
+                    var minIdx = i
+                    var minVal = entries[i].second
+                    var k = i
+                    while (k < entries.size && entries[k].second <= wet) {
+                        val v = entries[k].second
+                        if (v <= minVal) { minVal = v; minIdx = k }
+                        k++
                     }
+                    return entries[minIdx].first
                 }
             }
-        } else {
-            val key = sensorKeys[selectedSensorIndex - 1]
-            dataList.forEach { obj ->
-                val ts = OffsetDateTime.parse(obj.getString("created_at")).plusHours(2)
-                if (ts.isBefore(lookback)) return@forEach
-                val v = obj.optInt(key, -1)
-                if (v >= 0) {
-                    when {
-                        v < lowestVal -> { lowestVal = v.toFloat(); lowestTs = ts }
-                        v.toFloat() == lowestVal && ts.isAfter(lowestTs) -> lowestTs = ts
-                    }
-                }
-            }
+            return null
         }
 
-        return lowestTs
+        if (selectedSensorIndex == 0) {
+            var latest = lookback
+            sensorKeys.forEachIndexed { idx, key ->
+                val entries = dataList.mapNotNull { obj ->
+                    val ts = OffsetDateTime.parse(obj.getString("created_at")).plusHours(2)
+                    if (ts.isBefore(lookback)) return@mapNotNull null
+                    val v = obj.optInt(key, -1).takeIf { it >= 0 } ?: return@mapNotNull null
+                    ts to v.toFloat()
+                }.sortedBy { it.first }
+                dipFor(entries, wetVals[idx])?.let { if (it.isAfter(latest)) latest = it }
+            }
+            return latest
+        } else {
+            val key = sensorKeys[selectedSensorIndex - 1]
+            val entries = dataList.mapNotNull { obj ->
+                val ts = OffsetDateTime.parse(obj.getString("created_at")).plusHours(2)
+                if (ts.isBefore(lookback)) return@mapNotNull null
+                val v = obj.optInt(key, -1).takeIf { it >= 0 } ?: return@mapNotNull null
+                ts to v.toFloat()
+            }.sortedBy { it.first }
+            return dipFor(entries, wetVals[selectedSensorIndex - 1]) ?: lookback
+        }
     }
 
     /* =========================================================== */
