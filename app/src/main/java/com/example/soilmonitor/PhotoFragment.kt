@@ -283,6 +283,12 @@ class PhotoFragment : Fragment() {
                 withContext(Dispatchers.Main) {
                     progressBar.visibility = View.GONE
                     if (latestPair != null) {
+                        if (!userSeeking) {
+                            seekBarTime.visibility = View.VISIBLE
+                            seekBarTime.max = liveFiles.size - 1
+                            seekBarTime.progress = liveFiles.size - 1
+                        }
+
                         val (bitmap, tsMillis) = latestPair
                         gifView.setImageBitmap(bitmap)
                         gifView.visibility = View.VISIBLE
@@ -336,12 +342,6 @@ class PhotoFragment : Fragment() {
         }
 
         liveFiles = remoteNames.map { File(localDir, it) }
-
-        if (!userSeeking) {
-            seekBarTime.visibility = View.VISIBLE
-            seekBarTime.max = liveFiles.size - 1
-            seekBarTime.progress = liveFiles.size - 1
-        }
 
         val latestFile = liveFiles.lastOrNull() ?: return null
         val bmp = BitmapFactory.decodeFile(latestFile.absolutePath) ?: return null
