@@ -463,7 +463,18 @@ class PhotoFragment : Fragment() {
                     val length = conn.contentLength.takeIf { it > 0 } ?: -1
                     var bytesCopied = 0L
                     val buffer = ByteArray(8 * 1024)
-                    var lastUpdate = System.currentTimeMillis()
+                    var lastProgressUpdate = System.currentTimeMillis()
+                    var lastTextUpdate = System.currentTimeMillis()
+                    val startTime = System.currentTimeMillis()
+
+                    // Initial UI update
+                    lifecycleScope.launch(Dispatchers.Main) {
+                        val overallPercent = ((index - 1) * 100) / total
+                        progressBarOverall.progress = overallPercent
+                        tvOverallInfo.text = "Photo $index of $total ($overallPercent%)"
+                        tvDownloadInfo.text = "${destFile.name} (0%)"
+                        progressBarDownload.progress = 0
+                    }
 
                     conn.inputStream.use { input ->
                         FileOutputStream(destFile).use { out ->
@@ -473,22 +484,33 @@ class PhotoFragment : Fragment() {
                                 bytesCopied += read
 
                                 val now = System.currentTimeMillis()
-                                if (now - lastUpdate > 500) { // update UI every 0.5s
-                                    lastUpdate = now
+
+                                // Update progress bars every 200ms for smooth animation
+                                if (now - lastProgressUpdate > 200) {
+                                    lastProgressUpdate = now
                                     val currentFilePercent = if (length > 0) {
                                         (bytesCopied * 100 / length).toInt()
                                     } else 0
                                     val overallPercent = ((index - 1) * 100 + currentFilePercent) / total
-                                    val speedKb = bytesCopied / 1024.0 / ((now - conn.date) / 1000.0).coerceAtLeast(1.0)
 
                                     lifecycleScope.launch(Dispatchers.Main) {
-                                        // Update overall progress
                                         progressBarOverall.progress = overallPercent
-                                        tvOverallInfo.text = "Photo $index of $total ($overallPercent%)"
-
-                                        // Update current file progress
-                                        tvDownloadInfo.text = "${destFile.name} ($currentFilePercent%)"
                                         progressBarDownload.progress = currentFilePercent
+                                    }
+                                }
+
+                                // Update text labels every 1 second for consistent updates
+                                if (now - lastTextUpdate > 1000) {
+                                    lastTextUpdate = now
+                                    val currentFilePercent = if (length > 0) {
+                                        (bytesCopied * 100 / length).toInt()
+                                    } else 0
+                                    val overallPercent = ((index - 1) * 100 + currentFilePercent) / total
+                                    val speedKb = bytesCopied / 1024.0 / ((now - startTime) / 1000.0).coerceAtLeast(1.0)
+
+                                    lifecycleScope.launch(Dispatchers.Main) {
+                                        tvOverallInfo.text = "Photo $index of $total ($overallPercent%)"
+                                        tvDownloadInfo.text = "${destFile.name} ($currentFilePercent%)"
                                         tvDownloadSpeed.text = String.format("%.1f KB/s", speedKb)
                                     }
                                 }
@@ -496,11 +518,13 @@ class PhotoFragment : Fragment() {
                         }
                     }
 
-                    // Update to show completion of this file
+                    // Final update when file is complete
                     lifecycleScope.launch(Dispatchers.Main) {
                         val overallPercent = (index * 100) / total
                         progressBarOverall.progress = overallPercent
                         progressBarDownload.progress = 100
+                        tvOverallInfo.text = "Photo $index of $total ($overallPercent%)"
+                        tvDownloadInfo.text = "${destFile.name} (100%)"
                     }
 
                     destFile.setLastModified(conn.lastModified.takeIf { it > 0 } ?: System.currentTimeMillis())
