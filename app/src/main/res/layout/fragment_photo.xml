@@ -7,7 +7,7 @@
     android:orientation="vertical"
     android:padding="16dp">
 
-    <!-- Top row: “LIVE” and “TIMELAPSE” -->
+    <!-- Top row: "LIVE" and "TIMELAPSE" -->
     <LinearLayout
         android:id="@+id/button_row"
         android:layout_width="match_parent"
@@ -33,7 +33,7 @@
             android:layout_marginStart="8dp" />
     </LinearLayout>
 
-    <!-- Timelapse range buttons (open date/time pickers) -->
+    <!-- Timelapse range buttons -->
     <Button
         android:id="@+id/btnFrom"
         android:layout_width="match_parent"
@@ -47,17 +47,73 @@
         android:text="To"
         android:layout_marginBottom="12dp" />
 
-    <!-- ProgressBar (visible while loading) -->
-    <ProgressBar
-        android:id="@+id/progressBar"
-        style="@android:style/Widget.DeviceDefault.Light.ProgressBar.Large"
-        android:layout_width="wrap_content"
+    <!-- Download status area -->
+    <LinearLayout
+        android:id="@+id/downloadStatusLayout"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:visibility="gone"
-        android:layout_gravity="center"
-        android:layout_marginBottom="12dp" />
+        android:orientation="vertical"
+        android:gravity="center_horizontal"
+        android:padding="8dp"
+        android:visibility="gone">
 
-    <!-- IMAGE: width fills parent; height wraps content. -->
+        <!-- Overall progress info -->
+        <TextView
+            android:id="@+id/tvOverallInfo"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Downloading photos..."
+            android:textAppearance="?android:attr/textAppearanceMedium"
+            android:textStyle="bold"
+            android:paddingBottom="4dp" />
+
+        <!-- Overall progress bar -->
+        <ProgressBar
+            android:id="@+id/progressBarOverall"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="8dp"
+            android:max="100"
+            android:progress="0"
+            android:layout_marginBottom="8dp" />
+
+        <!-- Current file info -->
+        <TextView
+            android:id="@+id/tvDownloadInfo"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Preparing download..."
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:paddingBottom="4dp" />
+
+        <!-- Current file progress bar -->
+        <ProgressBar
+            android:id="@+id/progressBarDownload"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="6dp"
+            android:max="100"
+            android:progress="0" />
+
+        <TextView
+            android:id="@+id/tvDownloadSpeed"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0 KB/s"
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:paddingTop="4dp" />
+
+        <TextView
+            android:id="@+id/tvDownloadError"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@android:color/holo_red_dark"
+            android:visibility="gone"
+            android:paddingTop="4dp"
+            android:text="Error downloading file" />
+    </LinearLayout>
+
+    <!-- IMAGE -->
     <ImageView
         android:id="@+id/gifView"
         android:layout_width="match_parent"
@@ -67,7 +123,7 @@
         android:visibility="gone"
         android:contentDescription="Soil monitor image" />
 
-    <!-- TIMESTAMP: immediately below the ImageView -->
+    <!-- TIMESTAMP -->
     <TextView
         android:id="@+id/tvTimestamp"
         android:layout_width="match_parent"
@@ -78,14 +134,14 @@
         android:paddingTop="8dp"
         android:paddingBottom="8dp" />
 
-    <!-- Time slider for live view -->
+    <!-- Time slider -->
     <SeekBar
         android:id="@+id/seekBarTime"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:visibility="gone" />
 
-    <!-- FPS slider row: label + SeekBar -->
+    <!-- FPS slider row -->
     <LinearLayout
         android:id="@+id/fps_slider_row"
         android:layout_width="match_parent"
@@ -95,7 +151,6 @@
         android:layout_marginTop="12dp"
         android:paddingHorizontal="8dp">
 
-        <!-- Label showing current FPS -->
         <TextView
             android:id="@+id/tvFpsLabel"
             android:layout_width="wrap_content"
@@ -104,7 +159,6 @@
             android:textAppearance="?android:attr/textAppearanceMedium"
             android:paddingEnd="16dp" />
 
-        <!-- SeekBar from 1 to 200 FPS: raw progress 0..199 maps to 1..200 -->
         <SeekBar
             android:id="@+id/seekBarFps"
             android:layout_width="0dp"

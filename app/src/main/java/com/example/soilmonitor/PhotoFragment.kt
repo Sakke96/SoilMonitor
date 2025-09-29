@@ -34,12 +34,20 @@ class PhotoFragment : Fragment() {
 
     private lateinit var btnTimelapse: Button
     private lateinit var btnLive: Button
-    private lateinit var progressBar: ProgressBar
     private lateinit var gifView: ImageView
     private lateinit var tvTimestamp: TextView
     private lateinit var btnFrom: Button
     private lateinit var btnTo: Button
     private lateinit var seekBarTime: SeekBar
+    private lateinit var downloadStatusLayout: View
+    private lateinit var tvDownloadInfo: TextView
+    private lateinit var progressBarDownload: ProgressBar
+    private lateinit var tvDownloadSpeed: TextView
+    private lateinit var tvDownloadError: TextView
+    // Add these new progress bar variables
+    private lateinit var tvOverallInfo: TextView
+    private lateinit var progressBarOverall: ProgressBar
+
 
     // Slider components
     private lateinit var seekBarFps: SeekBar
@@ -74,12 +82,18 @@ class PhotoFragment : Fragment() {
 
         btnTimelapse = root.findViewById(R.id.btnTimelapse)
         btnLive = root.findViewById(R.id.btnLive)
-        progressBar = root.findViewById(R.id.progressBar)
         gifView = root.findViewById(R.id.gifView)
         tvTimestamp = root.findViewById(R.id.tvTimestamp)
         btnFrom = root.findViewById(R.id.btnFrom)
         btnTo = root.findViewById(R.id.btnTo)
         seekBarTime = root.findViewById(R.id.seekBarTime)
+        downloadStatusLayout = root.findViewById(R.id.downloadStatusLayout)
+        tvDownloadInfo = root.findViewById(R.id.tvDownloadInfo)
+        progressBarDownload = root.findViewById(R.id.progressBarDownload)
+        tvDownloadSpeed = root.findViewById(R.id.tvDownloadSpeed)
+        tvDownloadError = root.findViewById(R.id.tvDownloadError)
+        tvOverallInfo = root.findViewById(R.id.tvOverallInfo)
+        progressBarOverall = root.findViewById(R.id.progressBarOverall)
 
         val calNow = Calendar.getInstance()
         toDate = calNow.time
@@ -179,7 +193,6 @@ class PhotoFragment : Fragment() {
     // 1) ANIMATION MODE (1-Day / 7-Day) → show FPS slider, download frames, then animate
     // ──────────────────────────────────────────────────────────────────────────────
     private fun startTimelapseMode(from: Date, to: Date) {
-        progressBar.visibility = View.VISIBLE
         gifView.visibility = View.GONE
         tvTimestamp.text = "—"
         stopAnimationMode()
@@ -211,7 +224,6 @@ class PhotoFragment : Fragment() {
                 currentFrames = frames
 
                 withContext(Dispatchers.Main) {
-                    progressBar.visibility = View.GONE
                     if (frames.isNotEmpty()) {
                         gifView.visibility = View.VISIBLE
                         animateFrames(frames)
@@ -223,7 +235,6 @@ class PhotoFragment : Fragment() {
             } catch (e: Exception) {
                 Log.e("PhotoFragment", "Error fetching/animating photos", e)
                 withContext(Dispatchers.Main) {
-                    progressBar.visibility = View.GONE
                     tvTimestamp.text = "Error loading images"
                 }
             }
@@ -269,7 +280,6 @@ class PhotoFragment : Fragment() {
     // ──────────────────────────────────────────────────────────────────────────────
     private fun startLiveMode(from: Date, to: Date) {
         stopLiveMode()
-        progressBar.visibility = View.VISIBLE
         tvTimestamp.text = "—"
 
         // Hide FPS slider in Live mode
@@ -281,7 +291,6 @@ class PhotoFragment : Fragment() {
             while (isActive) {
                 val latestPair = fetchLatestPhotoRange(from, to)
                 withContext(Dispatchers.Main) {
-                    progressBar.visibility = View.GONE
                     if (latestPair != null) {
                         if (!userSeeking) {
                             seekBarTime.visibility = View.VISIBLE
@@ -337,8 +346,9 @@ class PhotoFragment : Fragment() {
         val localNames = localDir.listFiles { f -> f.extension.equals("jpg", true) }?.map { it.name } ?: emptyList()
         if (localNames.size < remoteNames.size) {
             val missing = remoteNames.takeLast(remoteNames.size - localNames.size)
-            for (name in missing) {
-                downloadFile("$indexUrl$name", File(localDir, name))
+            missing.forEachIndexed { idx, name ->
+                downloadFile("$indexUrl$name", File(localDir, name), idx + 1, missing.size)
+
             }
         }
 
@@ -390,26 +400,36 @@ class PhotoFragment : Fragment() {
         val remoteNames = matches.map { it.groupValues[1] }.sorted()
 
         val localNames = localDir.listFiles { f -> f.extension.equals("jpg", true) }?.map { it.name } ?: emptyList()
-
-        if (localNames.size == remoteNames.size) {
-            return remoteNames.map { File(localDir, it) }
-        }
-
         val existing = localNames.toSet()
-        val missing = if (localNames.size < remoteNames.size) {
-            remoteNames.takeLast(remoteNames.size - localNames.size).filter { it !in existing }
-        } else {
-            remoteNames.filter { it !in existing }
+        val missing = remoteNames.filter { it !in existing }
+
+        // show progress UI if there are files to download
+        if (missing.isNotEmpty()) {
+            lifecycleScope.launch(Dispatchers.Main) {
+                downloadStatusLayout.visibility = View.VISIBLE
+                tvDownloadError.visibility = View.GONE
+                progressBarDownload.progress = 0
+                progressBarOverall.progress = 0
+                tvOverallInfo.text = "Downloading ${missing.size} photos for $dateStr"
+                tvDownloadInfo.text = "Preparing download..."
+                tvDownloadSpeed.text = ""
+            }
         }
 
-        for (name in missing) {
+        missing.forEachIndexed { idx, name ->
             val url = "$indexUrl$name"
             val dest = File(localDir, name)
-            downloadFile(url, dest)
+            downloadFile(url, dest, idx + 1, missing.size)
+        }
+
+        lifecycleScope.launch(Dispatchers.Main) {
+            downloadStatusLayout.visibility = View.GONE
         }
 
         return remoteNames.map { File(localDir, it) }
     }
+
+
 
     private fun fetchUrlAsString(urlStr: String): String? {
         (URL(urlStr).openConnection() as? HttpURLConnection)?.let { conn ->
@@ -431,34 +451,75 @@ class PhotoFragment : Fragment() {
         return null
     }
 
-    private fun downloadFile(urlStr: String, destFile: File) {
+    private fun downloadFile(urlStr: String, destFile: File, index: Int, total: Int) {
         (URL(urlStr).openConnection() as? HttpURLConnection)?.let { conn ->
             try {
                 conn.requestMethod = "GET"
                 conn.connectTimeout = 5_000
-                conn.readTimeout = 5_000
+                conn.readTimeout = 10_000
                 conn.connect()
 
                 if (conn.responseCode == 200) {
+                    val length = conn.contentLength.takeIf { it > 0 } ?: -1
+                    var bytesCopied = 0L
+                    val buffer = ByteArray(8 * 1024)
+                    var lastUpdate = System.currentTimeMillis()
+
                     conn.inputStream.use { input ->
                         FileOutputStream(destFile).use { out ->
-                            input.copyTo(out)
+                            var read: Int
+                            while (input.read(buffer).also { read = it } != -1) {
+                                out.write(buffer, 0, read)
+                                bytesCopied += read
+
+                                val now = System.currentTimeMillis()
+                                if (now - lastUpdate > 500) { // update UI every 0.5s
+                                    lastUpdate = now
+                                    val currentFilePercent = if (length > 0) {
+                                        (bytesCopied * 100 / length).toInt()
+                                    } else 0
+                                    val overallPercent = ((index - 1) * 100 + currentFilePercent) / total
+                                    val speedKb = bytesCopied / 1024.0 / ((now - conn.date) / 1000.0).coerceAtLeast(1.0)
+
+                                    lifecycleScope.launch(Dispatchers.Main) {
+                                        // Update overall progress
+                                        progressBarOverall.progress = overallPercent
+                                        tvOverallInfo.text = "Photo $index of $total ($overallPercent%)"
+
+                                        // Update current file progress
+                                        tvDownloadInfo.text = "${destFile.name} ($currentFilePercent%)"
+                                        progressBarDownload.progress = currentFilePercent
+                                        tvDownloadSpeed.text = String.format("%.1f KB/s", speedKb)
+                                    }
+                                }
+                            }
                         }
                     }
-                    val remoteLastMod = conn.lastModified
-                    if (remoteLastMod > 0) {
-                        destFile.setLastModified(remoteLastMod)
+
+                    // Update to show completion of this file
+                    lifecycleScope.launch(Dispatchers.Main) {
+                        val overallPercent = (index * 100) / total
+                        progressBarOverall.progress = overallPercent
+                        progressBarDownload.progress = 100
                     }
+
+                    destFile.setLastModified(conn.lastModified.takeIf { it > 0 } ?: System.currentTimeMillis())
                 } else {
-                    throw Exception("HTTP ${conn.responseCode} for $urlStr")
+                    throw Exception("HTTP ${conn.responseCode}")
                 }
             } catch (t: Throwable) {
                 Log.e("PhotoFragment", "Error downloading $urlStr", t)
+                lifecycleScope.launch(Dispatchers.Main) {
+                    tvDownloadError.visibility = View.VISIBLE
+                    tvDownloadError.text = "Failed: ${t.message}"
+                }
             } finally {
                 conn.disconnect()
             }
         }
     }
+
+
 
     private fun showDateTimePicker(initial: Date, callback: (Date) -> Unit) {
         val cal = Calendar.getInstance().apply { time = initial }

@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<network-security-config>
-    <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="false">kasiyip.be</domain>
-    </domain-config>
-    <!-- By default, cleartext is disallowed for other domains. -->
-</network-security-config>
