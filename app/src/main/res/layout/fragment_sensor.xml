@@ -1,91 +1,92 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/rootLayout"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="16dp">
+    >
 
-    <!-- ===== PLANT SELECTOR ===== -->
-    <!-- A row of 5 equally‐weighted buttons -->
     <LinearLayout
-        android:id="@+id/sensorLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginBottom="8dp" />
+        android:orientation="vertical"
+        android:padding="16dp">
 
-    <!-- ===== CHART ===== -->
-    <com.github.mikephil.charting.charts.LineChart
-        android:id="@+id/lineChart"
-        android:layout_width="match_parent"
-        android:layout_height="300dp"
-        android:layout_marginTop="8dp" />
+        <!-- Sensor selection buttons -->
+        <LinearLayout
+            android:id="@+id/sensorLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal" />
 
-    <!-- ===== TREND PREDICTION TEXT ===== -->
-    <TextView
-        android:id="@+id/trendPredictionText"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:textColor="#555555"
-        android:textStyle="italic"
-        android:layout_marginTop="4dp" />
+        <!-- Chart -->
+        <com.github.mikephil.charting.charts.LineChart
+            android:id="@+id/lineChart"
+            android:layout_width="match_parent"
+            android:layout_height="300dp"
+            android:layout_marginTop="16dp" />
 
-    <!-- ===== FILTER & DISPLAY CONTROLS ===== -->
-    <CheckBox
-        android:id="@+id/hideNightCheckBox"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:text="Hide 00:00 – 06:00"
-        android:checked="true" />
+        <!-- Controls -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:orientation="horizontal">
 
-    <CheckBox
-        android:id="@+id/hideSeparatorCheckBox"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:text="Hide day separators" />
+            <CheckBox
+                android:id="@+id/hideNightCheckBox"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Hide night" />
 
-    <RadioGroup
-        android:id="@+id/rangeRadioGroup"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginTop="4dp">
+            <CheckBox
+                android:id="@+id/hideSeparatorCheckBox"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Hide sep" />
 
-        <RadioButton
-            android:id="@+id/range24hRadio"
+        </LinearLayout>
+
+        <RadioGroup
+            android:id="@+id/rangeRadioGroup"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <RadioButton
+                android:id="@+id/range24hRadio"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="24h" />
+
+            <RadioButton
+                android:id="@+id/rangeLastDipRadio"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Last dip" />
+
+            <RadioButton
+                android:id="@+id/rangeAllRadio"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checked="true"
+                android:text="All" />
+
+        </RadioGroup>
+
+        <CheckBox
+            android:id="@+id/bridgeGapsCheckBox"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="24 h" />
+            android:checked="true"
+            android:text="Bridge gaps" />
 
-        <RadioButton
-            android:id="@+id/rangeLastDipRadio"
-            android:layout_width="wrap_content"
+        <TextView
+            android:id="@+id/trendPredictionText"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="From last dip" />
+            android:layout_marginTop="8dp"
+            android:text=""
+            android:textSize="12sp" />
 
-        <RadioButton
-            android:id="@+id/rangeAllRadio"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="All" />
-    </RadioGroup>
+    </LinearLayout>
 
-    <CheckBox
-        android:id="@+id/bridgeGapsCheckBox"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:text="Bridge missing 10-min gaps"
-        android:checked="true" />
-
-    <CheckBox
-        android:id="@+id/trendLineCheckBox"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:text="Show trend to dry" />
-
-</LinearLayout>
+</ScrollView>

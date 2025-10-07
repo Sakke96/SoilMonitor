@@ -48,7 +48,6 @@ class PhotoFragment : Fragment() {
     private lateinit var tvOverallInfo: TextView
     private lateinit var progressBarOverall: ProgressBar
 
-
     // Slider components
     private lateinit var seekBarFps: SeekBar
     private lateinit var tvFpsLabel: TextView
@@ -72,6 +71,9 @@ class PhotoFragment : Fragment() {
     private var toDate: Date = Date()
     private var liveFiles: List<File> = emptyList()
     private var userSeeking: Boolean = false
+
+    // Track if we're in download preview mode
+    private var isDownloadingPreview: Boolean = false
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -198,6 +200,7 @@ class PhotoFragment : Fragment() {
         stopAnimationMode()
 
         currentFrames = null
+        isDownloadingPreview = true
 
         // Show FPS slider when starting animation mode
         fpsSliderRow.visibility = View.VISIBLE
@@ -208,7 +211,23 @@ class PhotoFragment : Fragment() {
 
                 val frames: MutableList<Pair<Bitmap, Long>> = mutableListOf()
                 for (dateStr in dateList) {
-                    val localFiles = downloadSmartForDate(dateStr)
+                    val localFiles = downloadSmartForDate(dateStr) { file ->
+                        // Show each photo immediately as it's downloaded
+                        val tsMillis = file.lastModified()
+                        if (tsMillis in from.time..to.time) {
+                            val bmp = BitmapFactory.decodeFile(file.absolutePath)
+                            if (bmp != null) {
+                                lifecycleScope.launch(Dispatchers.Main) {
+                                    if (isDownloadingPreview) {
+                                        gifView.setImageBitmap(bmp)
+                                        gifView.visibility = View.VISIBLE
+                                        tvTimestamp.text = sdfDisplay.format(Date(tsMillis))
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     for (file in localFiles) {
                         val tsMillis = file.lastModified()
                         if (tsMillis in from.time..to.time) {
@@ -222,6 +241,7 @@ class PhotoFragment : Fragment() {
 
                 frames.sortBy { it.second }
                 currentFrames = frames
+                isDownloadingPreview = false
 
                 withContext(Dispatchers.Main) {
                     if (frames.isNotEmpty()) {
@@ -234,6 +254,7 @@ class PhotoFragment : Fragment() {
                 }
             } catch (e: Exception) {
                 Log.e("PhotoFragment", "Error fetching/animating photos", e)
+                isDownloadingPreview = false
                 withContext(Dispatchers.Main) {
                     tvTimestamp.text = "Error loading images"
                 }
@@ -244,6 +265,7 @@ class PhotoFragment : Fragment() {
     private fun stopAnimationMode() {
         animJob?.cancel()
         animJob = null
+        isDownloadingPreview = false
         fpsSliderRow.visibility = View.GONE
     }
 
@@ -269,7 +291,7 @@ class PhotoFragment : Fragment() {
 
     /** Called after the user adjusts FPS and releases the SeekBar. */
     private fun restartAnimation(frames: List<Pair<Bitmap, Long>>) {
-        // Only restart if we’re truly in animation mode
+        // Only restart if we're truly in animation mode
         if (currentFrames != null) {
             animateFrames(frames)
         }
@@ -281,6 +303,7 @@ class PhotoFragment : Fragment() {
     private fun startLiveMode(from: Date, to: Date) {
         stopLiveMode()
         tvTimestamp.text = "—"
+        isDownloadingPreview = true
 
         // Hide FPS slider in Live mode
         fpsSliderRow.visibility = View.GONE
@@ -289,7 +312,22 @@ class PhotoFragment : Fragment() {
 
         liveJob = lifecycleScope.launch(Dispatchers.IO) {
             while (isActive) {
-                val latestPair = fetchLatestPhotoRange(from, to)
+                val latestPair = fetchLatestPhotoRange(from, to) { file ->
+                    // Show each photo immediately as it's downloaded in live mode too
+                    val bmp = BitmapFactory.decodeFile(file.absolutePath)
+                    if (bmp != null) {
+                        lifecycleScope.launch(Dispatchers.Main) {
+                            if (isDownloadingPreview) {
+                                gifView.setImageBitmap(bmp)
+                                gifView.visibility = View.VISIBLE
+                                tvTimestamp.text = sdfDisplay.format(Date(file.lastModified()))
+                            }
+                        }
+                    }
+                }
+
+                isDownloadingPreview = false
+
                 withContext(Dispatchers.Main) {
                     if (latestPair != null) {
                         if (!userSeeking) {
@@ -316,6 +354,7 @@ class PhotoFragment : Fragment() {
     private fun stopLiveMode() {
         liveJob?.cancel()
         liveJob = null
+        isDownloadingPreview = false
         seekBarTime.visibility = View.GONE
     }
 
@@ -347,8 +386,19 @@ class PhotoFragment : Fragment() {
         if (localNames.size < remoteNames.size) {
             val missing = remoteNames.takeLast(remoteNames.size - localNames.size)
             missing.forEachIndexed { idx, name ->
-                downloadFile("$indexUrl$name", File(localDir, name), idx + 1, missing.size)
-
+                downloadFile("$indexUrl$name", File(localDir, name), idx + 1, missing.size) { file ->
+                    // Show photo immediately after download
+                    val bmp = BitmapFactory.decodeFile(file.absolutePath)
+                    if (bmp != null) {
+                        lifecycleScope.launch(Dispatchers.Main) {
+                            if (isDownloadingPreview) {
+                                gifView.setImageBitmap(bmp)
+                                gifView.visibility = View.VISIBLE
+                                tvTimestamp.text = sdfDisplay.format(Date(file.lastModified()))
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -361,11 +411,11 @@ class PhotoFragment : Fragment() {
         return Pair(bmp, tsMillis)
     }
 
-    private fun fetchLatestPhotoRange(from: Date, to: Date): Pair<Bitmap, Long>? {
+    private fun fetchLatestPhotoRange(from: Date, to: Date, onPhotoDownloaded: ((File) -> Unit)? = null): Pair<Bitmap, Long>? {
         val dates = getDatesBetween(from, to)
         val files = mutableListOf<File>()
         for (date in dates) {
-            val daily = downloadSmartForDate(date)
+            val daily = downloadSmartForDate(date, onPhotoDownloaded)
             files.addAll(daily.filter { f ->
                 val ts = f.lastModified()
                 ts in from.time..to.time
@@ -388,7 +438,7 @@ class PhotoFragment : Fragment() {
         return dates
     }
 
-    private fun downloadSmartForDate(dateStr: String): List<File> {
+    private fun downloadSmartForDate(dateStr: String, onPhotoDownloaded: ((File) -> Unit)? = null): List<File> {
         val localDir = File(requireContext().filesDir, "photos/$dateStr")
         if (!localDir.exists()) localDir.mkdirs()
 
@@ -419,7 +469,9 @@ class PhotoFragment : Fragment() {
         missing.forEachIndexed { idx, name ->
             val url = "$indexUrl$name"
             val dest = File(localDir, name)
-            downloadFile(url, dest, idx + 1, missing.size)
+            downloadFile(url, dest, idx + 1, missing.size) { file ->
+                onPhotoDownloaded?.invoke(file)
+            }
         }
 
         lifecycleScope.launch(Dispatchers.Main) {
@@ -428,8 +480,6 @@ class PhotoFragment : Fragment() {
 
         return remoteNames.map { File(localDir, it) }
     }
-
-
 
     private fun fetchUrlAsString(urlStr: String): String? {
         (URL(urlStr).openConnection() as? HttpURLConnection)?.let { conn ->
@@ -451,7 +501,7 @@ class PhotoFragment : Fragment() {
         return null
     }
 
-    private fun downloadFile(urlStr: String, destFile: File, index: Int, total: Int) {
+    private fun downloadFile(urlStr: String, destFile: File, index: Int, total: Int, onComplete: ((File) -> Unit)? = null) {
         (URL(urlStr).openConnection() as? HttpURLConnection)?.let { conn ->
             try {
                 conn.requestMethod = "GET"
@@ -528,6 +578,10 @@ class PhotoFragment : Fragment() {
                     }
 
                     destFile.setLastModified(conn.lastModified.takeIf { it > 0 } ?: System.currentTimeMillis())
+
+                    // Call the completion callback to show the image immediately
+                    onComplete?.invoke(destFile)
+
                 } else {
                     throw Exception("HTTP ${conn.responseCode}")
                 }
@@ -542,8 +596,6 @@ class PhotoFragment : Fragment() {
             }
         }
     }
-
-
 
     private fun showDateTimePicker(initial: Date, callback: (Date) -> Unit) {
         val cal = Calendar.getInstance().apply { time = initial }
