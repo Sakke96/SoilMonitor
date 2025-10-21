@@ -29,6 +29,7 @@ class SettingsFragment : Fragment() {
     private lateinit var spinnerTempUnit: Spinner
     private lateinit var switchDebugMode: SwitchMaterial
     private lateinit var buttonClearCache: Button
+    private lateinit var buttonUploadThresholds: Button
     private lateinit var buttonDecimate: Button
     private lateinit var prefs: SharedPreferences
 
@@ -52,6 +53,7 @@ class SettingsFragment : Fragment() {
         spinnerTempUnit        = root.findViewById(R.id.spinner_temp_unit)
         switchDebugMode        = root.findViewById(R.id.switch_debug_mode)
         buttonClearCache       = root.findViewById(R.id.button_clear_cache)
+        buttonUploadThresholds = root.findViewById(R.id.button_upload_thresholds)
         buttonDecimate         = root.findViewById(R.id.button_decimate)
 
         // Load defaults
@@ -98,6 +100,39 @@ class SettingsFragment : Fragment() {
             } else {
                 Toast.makeText(requireContext(), "No cached photos to delete", Toast.LENGTH_SHORT).show()
             }
+        }
+
+        // Upload thresholds button listener
+        buttonUploadThresholds.setOnClickListener {
+            val plantCount = prefs.getInt("plantCount", 4)
+            val json = org.json.JSONObject().apply {
+                for (i in 1..plantCount) {
+                    put("plant_${'$'}i_dry", prefs.getFloat("plant_${'$'}i_dry", 0f))
+                    put("plant_${'$'}i_wet", prefs.getFloat("plant_${'$'}i_wet", 100f))
+                }
+            }
+            val body = RequestBody.create(
+                MediaType.parse("application/json; charset=utf-8"),
+                json.toString()
+            )
+            val request = Request.Builder()
+                .url("https://g2f12813f9dfc61-garden.adb.eu-paris-1.oraclecloudapps.com/ords/admin/thresholds/")
+                .post(body)
+                .build()
+
+            client.newCall(request).enqueue(object : Callback {
+                override fun onFailure(call: Call, e: IOException) {
+                    activity?.runOnUiThread {
+                        Toast.makeText(requireContext(), "Upload mislukt", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                override fun onResponse(call: Call, response: Response) {
+                    response.close()
+                    activity?.runOnUiThread {
+                        Toast.makeText(requireContext(), "Grenzen geüpload", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            })
         }
 
         // Decimate button listener
